@@ -1,0 +1,178 @@
+[
+    {
+        "label": "List",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Dict",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Optional",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "List",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Dict",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Union",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "requests",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "requests",
+        "description": "requests",
+        "detail": "requests",
+        "documentation": {}
+    },
+    {
+        "label": "urllib.parse",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "urllib.parse",
+        "description": "urllib.parse",
+        "detail": "urllib.parse",
+        "documentation": {}
+    },
+    {
+        "label": "BeautifulSoup",
+        "importPath": "bs4",
+        "description": "bs4",
+        "isExtraImport": true,
+        "detail": "bs4",
+        "documentation": {}
+    },
+    {
+        "label": "BeautifulSoup",
+        "importPath": "bs4",
+        "description": "bs4",
+        "isExtraImport": true,
+        "detail": "bs4",
+        "documentation": {}
+    },
+    {
+        "label": "Tag",
+        "importPath": "bs4.element",
+        "description": "bs4.element",
+        "isExtraImport": true,
+        "detail": "bs4.element",
+        "documentation": {}
+    },
+    {
+        "label": "pytest",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "pytest",
+        "description": "pytest",
+        "detail": "pytest",
+        "documentation": {}
+    },
+    {
+        "label": "patch",
+        "importPath": "unittest.mock",
+        "description": "unittest.mock",
+        "isExtraImport": true,
+        "detail": "unittest.mock",
+        "documentation": {}
+    },
+    {
+        "label": "MagicMock",
+        "importPath": "unittest.mock",
+        "description": "unittest.mock",
+        "isExtraImport": true,
+        "detail": "unittest.mock",
+        "documentation": {}
+    },
+    {
+        "label": "SearchRequest",
+        "importPath": "libgen_api_modern.search_request",
+        "description": "libgen_api_modern.search_request",
+        "isExtraImport": true,
+        "detail": "libgen_api_modern.search_request",
+        "documentation": {}
+    },
+    {
+        "label": "LibgenSearch",
+        "importPath": "libgen_api_modern.libgen_search",
+        "description": "libgen_api_modern.libgen_search",
+        "isExtraImport": true,
+        "detail": "libgen_api_modern.libgen_search",
+        "documentation": {}
+    },
+    {
+        "label": "LibgenSearch",
+        "kind": 6,
+        "importPath": "libgen_api_modern.libgen_search",
+        "description": "libgen_api_modern.libgen_search",
+        "peekOfCode": "class LibgenSearch:\n    def search(self, query: str, search_type: str = \"def\") -> List[Dict[str, str]]:\n        \"\"\"\n        Searches for books based on the given query.\n        Args:\n            query (str): The search query.\n            search_type (str, optional): The type of search to perform. Defaults to \"def\".\n                -Options are: 'def', 'author(s)', 'title', 'series', 'publisher', 'year', 'language', 'isbn', 'md5.\n        Raises:\n            ValueError: If the query is shorter than 3 characters.",
+        "detail": "libgen_api_modern.libgen_search",
+        "documentation": {}
+    },
+    {
+        "label": "filter_results",
+        "kind": 2,
+        "importPath": "libgen_api_modern.libgen_search",
+        "description": "libgen_api_modern.libgen_search",
+        "peekOfCode": "def filter_results(\n        results: List[Dict[str, str]],\n        filters: Dict[str, str],\n        exact_match: bool = True\n) -> List[Dict[str, str]]:\n    \"\"\"\n    Returns a list of results that match the given filter criteria.\n    Args:\n        results (List[Dict[str, str]]): List of dictionaries containing search results.\n        filters (Dict[str, str]): Filters to apply to the search results.",
+        "detail": "libgen_api_modern.libgen_search",
+        "documentation": {}
+    },
+    {
+        "label": "SearchRequest",
+        "kind": 6,
+        "importPath": "libgen_api_modern.search_request",
+        "description": "libgen_api_modern.search_request",
+        "peekOfCode": "class SearchRequest:\n    col_names = [\n        \"ID\",\n        \"Author(s)\",\n        \"Title\",\n        \"Series\",\n        \"Publisher\",\n        \"Edition\",\n        \"Year\",\n        \"Pages\",",
+        "detail": "libgen_api_modern.search_request",
+        "documentation": {}
+    },
+    {
+        "label": "TestSearchRequest",
+        "kind": 6,
+        "importPath": "tests.test_libgen",
+        "description": "tests.test_libgen",
+        "peekOfCode": "class TestSearchRequest:\n    @pytest.fixture\n    def search_request(self):\n        return SearchRequest(\"Python\", \"title\")\n    def test_initialization(self, search_request):\n        assert search_request.query == \"Python\"\n        assert search_request.search_type == \"title\"\n    def test_initialization_short_query(self):\n        with pytest.raises(ValueError):\n            SearchRequest(\"Py\")",
+        "detail": "tests.test_libgen",
+        "documentation": {}
+    },
+    {
+        "label": "TestLibgenSearch",
+        "kind": 6,
+        "importPath": "tests.test_libgen",
+        "description": "tests.test_libgen",
+        "peekOfCode": "class TestLibgenSearch:\n    @pytest.fixture\n    def libgen_search(self):\n        return LibgenSearch()\n    @patch('api.libgen_search.SearchRequest.aggregate_request_data')\n    def test_search(self, mock_aggregate_request_data, libgen_search):\n        mock_aggregate_request_data.return_value = [{\"Title\": \"Some Book\"}]\n        results = libgen_search.search(\"Python\", \"title\")\n        assert len(results) == 1\n        assert results[0]['Title'] == \"Some Book\"",
+        "detail": "tests.test_libgen",
+        "documentation": {}
+    }
+]
