@@ -99,45 +99,20 @@
         "documentation": {}
     },
     {
-        "label": "unittest",
-        "kind": 6,
-        "isExtraImport": true,
-        "importPath": "unittest",
-        "description": "unittest",
-        "detail": "unittest",
-        "documentation": {}
-    },
-    {
-        "label": "Mock",
-        "importPath": "unittest.mock",
-        "description": "unittest.mock",
-        "isExtraImport": true,
-        "detail": "unittest.mock",
-        "documentation": {}
-    },
-    {
-        "label": "SearchRequest",
-        "importPath": "libgen_api_modern.search_request",
-        "description": "libgen_api_modern.search_request",
-        "isExtraImport": true,
-        "detail": "libgen_api_modern.search_request",
-        "documentation": {}
-    },
-    {
-        "label": "SearchRequest",
-        "importPath": "libgen_api_modern.search_request",
-        "description": "libgen_api_modern.search_request",
-        "isExtraImport": true,
-        "detail": "libgen_api_modern.search_request",
-        "documentation": {}
-    },
-    {
         "label": "pytest",
         "kind": 6,
         "isExtraImport": true,
         "importPath": "pytest",
         "description": "pytest",
         "detail": "pytest",
+        "documentation": {}
+    },
+    {
+        "label": "SearchRequest",
+        "importPath": "libgen_api_modern.search_request",
+        "description": "libgen_api_modern.search_request",
+        "isExtraImport": true,
+        "detail": "libgen_api_modern.search_request",
         "documentation": {}
     },
     {
@@ -173,24 +148,6 @@
         "description": "libgen_api_modern.search_request",
         "peekOfCode": "class SearchRequest:\n    col_names = [\n        \"ID\",\n        \"Author(s)\",\n        \"Title\",\n        \"Series\",\n        \"Publisher\",\n        \"Edition\",\n        \"Year\",\n        \"Pages\",",
         "detail": "libgen_api_modern.search_request",
-        "documentation": {}
-    },
-    {
-        "label": "x",
-        "kind": 5,
-        "importPath": "libgen_api_modern.search_request",
-        "description": "libgen_api_modern.search_request",
-        "peekOfCode": "x = SearchRequest(\"pride and prejudice\")\nprint(type(x.aggregate_request_data()))",
-        "detail": "libgen_api_modern.search_request",
-        "documentation": {}
-    },
-    {
-        "label": "TestSearchRequest",
-        "kind": 6,
-        "importPath": "tests.test_agg",
-        "description": "tests.test_agg",
-        "peekOfCode": "class TestSearchRequest(unittest.TestCase):\n    def setUp(self):\n        self.search_request = SearchRequest(\"test query\")\n    def test_aggregate_request_data_keys(self):\n        # Mock the necessary methods to isolate the function\n        self.search_request.get_search_page = Mock(return_value=Mock(text='<html><table><tr><td>test</td></tr></table></html>'))\n        self.search_request.strip_i_tag_from_soup = Mock()\n        self.search_request.col_names = ['ID', 'Title', 'Author(s)', 'Year', 'Pages', 'Language', 'Extension', 'Size']\n        result = self.search_request.aggregate_request_data()\n        self.assertTrue(all('ID' in book for book in result))",
-        "detail": "tests.test_agg",
         "documentation": {}
     },
     {

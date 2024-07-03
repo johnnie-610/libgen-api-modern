@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "libgen-api-modern"
-version = "0.1.0"
+version = "0.1.1"
 description = "Search Library Genesis"
 authors = ["Johnnie <99084912+johnnie-610@users.noreply.github.com>"]
 license = "MIT"
@@ -8,7 +8,7 @@ readme = "README.md"
 packages = [{include = "libgen_api_modern"}]
 
 [tool.poetry.dependencies]
-python = "^3.11,<3.12"
+python = "^3.9"
 requests = "^2.32.3"
 bs4 = "^0.0.2"
 

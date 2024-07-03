@@ -238,6 +238,4 @@ class SearchRequest:
                     f"http://download.library.lol/main/{download_id}/{md5}/{title}.{extension}"
                 )
 
-
-x = SearchRequest("pride and prejudice")
-print(type(x.aggregate_request_data()))
+        
