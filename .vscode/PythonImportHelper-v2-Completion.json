@@ -151,6 +151,15 @@
         "documentation": {}
     },
     {
+        "label": "x",
+        "kind": 5,
+        "importPath": "libgen_api_modern.search_request",
+        "description": "libgen_api_modern.search_request",
+        "peekOfCode": "x = SearchRequest(\"prince and the pauper\")\nprint(x.aggregate_request_data())",
+        "detail": "libgen_api_modern.search_request",
+        "documentation": {}
+    },
+    {
         "label": "TestSearchRequest",
         "kind": 6,
         "importPath": "tests.test_libgen",

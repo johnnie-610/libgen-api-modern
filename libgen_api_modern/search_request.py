@@ -112,130 +112,81 @@ class SearchRequest:
             self (SearchRequest): The search request object.
 
         Returns:
-            List[Dict[str, str]]: A list of dictionaries representing the search results,
-                where each dictionary contains the book data.
+            List[Dict[str, str]]: A list of dictionaries representing the aggregated request data.
         """
-        # Fetch the search page
+        # Get the search page
         search_page = self.get_search_page()
 
-        # Parse the search page
-        soup = BeautifulSoup(search_page.text, "html.parser")
-
-        # Remove any <i> tags from the soup
+        # Parse the search page using BeautifulSoup
+        soup = BeautifulSoup(search_page.content, "html.parser")
         self.strip_i_tag_from_soup(soup)
 
-        # Find all tables with the specified attributes
         tables = soup.find_all("table", {"border": "0", "rules": "cols", "width": "100%"})
 
-        # Initialize a list to store the raw book data
         raw_data = []
 
-        # Iterate over each table
         for table in tables:
-            # Find all rows in the table
-            rows = table.find_all("tr")[1:]
+            rows = table.find_all("tr")[1:]  # Skip the first row with brown background
 
-            # Iterate over each row
+            if not rows:
+                continue
+
+            book_data = {}
+            img_src = None
+            md5 = None
+
+            # Extract cover image and md5 hash
+            first_row = rows[0]
+            title_td = first_row.find_all("td")[2]
+            title = title_td.get_text(strip=True)
+            book_data["Title"] = title
+            img_tag = first_row.find('img')
+            if img_tag:
+                img_src = img_tag.get('src')
+            a_tag = first_row.find('a', href=True)
+            if a_tag and 'md5' in a_tag['href']:
+                md5 = a_tag['href'].split('md5=')[-1]
+
+
+
+            # Extract other book data
             for row in rows:
-                # Extract the cover image source and md5 hash
-                self.extract_cover_image_and_md5(row, raw_data)
+                cells = row.find_all("td")
+                if len(cells) < 2:
+                    continue  # Skip rows with insufficient data
 
-                # Extract other book data
-                self.extract_book_data(row, raw_data)
+                label = cells[0].get_text(strip=True).replace(":", "")
+                if label in self.col_names:
+                    book_data[label] = cells[1].get_text(strip=True)
+                    if len(cells) > 3 and cells[2].get_text(strip=True).replace(":", "") in self.col_names:
+                        book_data[cells[2].get_text(strip=True).replace(":", "")] = cells[3].get_text(strip=True)
+
+            # Ensure book_data has all keys from self.col_names
+            for col_name in self.col_names:
+                if col_name not in book_data:
+                    book_data[col_name] = ""
+
+            # Add the cover image source and md5 hash to the book data
+            if img_src:
+                book_data['Cover'] = f"https://libgen.rs{img_src}"
+            if md5:
+                book_data['MD5'] = md5.lower()
+
+            raw_data.append(book_data)
 
         # Add a direct download link to each result
-        self.add_direct_download_links(raw_data)
+        for book in raw_data:
+            if "ID" in book and "MD5" in book and "Title" in book and "Extension" in book:
+                id = book["ID"]
+                download_id = str(id)[:-3] + "000"
+                md5 = book["MD5"]
+                title = urllib.parse.quote(book["Title"])
+                extension = book["Extension"]
+                book['Direct_Download_Link'] = f"http://download.library.lol/main/{download_id}/{md5}/{title}.{extension}"
 
         return raw_data
 
-    def extract_cover_image_and_md5(
-            self, row: Tag, raw_data: List[Dict[str, str]]
-    ) -> None:
-        """
-        Extract the cover image source and md5 hash from the given row.
 
-        Args:
-            row (Tag): The row to extract the data from.
-            raw_data (List[Dict[str, str]]): The list to store the raw book data.
 
-        Returns:
-            None
-        """
-        # Extract the cover image source
-        img_tag: Optional[Tag] = row.find('img')
-        img_src: Optional[str] = img_tag.get('src') if img_tag else None
-
-        # Extract the md5 hash
-        a_tag: Optional[Tag] = row.find('a', href=True)
-        md5: Optional[str] = a_tag['href'].split('md5=')[-1] if a_tag and 'md5' in a_tag['href'] else None
-
-        # Store the extracted data
-        book_data: Dict[str, str] = {
-            'Title': row.find_all("td")[2].get_text(strip=True),
-            'Cover': f"https://libgen.rs{img_src}" if img_src else "",
-            'MD5': md5.lower() if md5 else ""
-        }
-        raw_data.append(book_data)
-
-    def extract_book_data(
-            self, row: Tag, raw_data: List[Dict[str, str]]
-    ) -> None:
-        """
-        Extract other book data from the given row.
-
-        Args:
-            row (Tag): The row to extract the data from.
-            raw_data (List[Dict[str, str]]): The list to store the raw book data.
-
-        Returns:
-            None
-        """
-        # Extract book data from the row
-        cells = row.find_all("td")
-        for i in range(len(cells)):
-            if len(cells) < 2:
-                continue  # Skip rows with insufficient data
-
-            label: str = cells[i].get_text(strip=True).replace(":", "")
-            if label in self.col_names:
-                try:
-                    raw_data[-1][label] = cells[i + 1].get_text(strip=True)
-                except Exception as e:
-                    logging.error(f"An error occurred while extracting the book data: {e}")
-
-            if len(cells) > 3 and cells[i + 2].get_text(strip=True).replace(":", "") in self.col_names:
-                try:
-                    raw_data[-1][cells[i + 2].get_text(strip=True).replace(":", "")] = cells[i + 3].get_text(strip=True)
-                except Exception as e:
-                    logging.error(f"An error occurred while extracting the additional book data: {e}")
-
-    def add_direct_download_links(
-        self,
-        raw_data: List[Dict[str, str]]
-    ) -> None:
-        """
-        Add a direct download link to each result.
-
-        Args:
-            raw_data (List[Dict[str, str]]): The list of raw book data.
-
-        Returns:
-            None
-        """
-        for book in raw_data:
-            if (
-                "ID" in book
-                and "MD5" in book
-                and "Title" in book
-                and "Extension" in book
-            ):
-                id: int = book["ID"]
-                download_id: str = str(id)[:-3] + "000"
-                md5: str = book["MD5"]
-                title: str = urllib.parse.quote(book["Title"])
-                extension: str = book["Extension"]
-                book['Direct_Download_Link'] = (
-                    f"http://download.library.lol/main/{download_id}/{md5}/{title}.{extension}"
-                )
-
-        
+x = SearchRequest("prince and the pauper")
+print(x.aggregate_request_data())

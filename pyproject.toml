@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "libgen-api-modern"
-version = "0.1.2"
+version = "0.1.3"
 description = "Search Library Genesis"
 authors = ["Johnnie <99084912+johnnie-610@users.noreply.github.com>"]
 license = "MIT"
