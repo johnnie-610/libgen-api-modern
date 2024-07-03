@@ -57,6 +57,15 @@
         "documentation": {}
     },
     {
+        "label": "logging",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "logging",
+        "description": "logging",
+        "detail": "logging",
+        "documentation": {}
+    },
+    {
         "label": "urllib.parse",
         "kind": 6,
         "isExtraImport": true,
@@ -90,24 +99,16 @@
         "documentation": {}
     },
     {
-        "label": "pytest",
+        "label": "unittest",
         "kind": 6,
         "isExtraImport": true,
-        "importPath": "pytest",
-        "description": "pytest",
-        "detail": "pytest",
+        "importPath": "unittest",
+        "description": "unittest",
+        "detail": "unittest",
         "documentation": {}
     },
     {
-        "label": "patch",
-        "importPath": "unittest.mock",
-        "description": "unittest.mock",
-        "isExtraImport": true,
-        "detail": "unittest.mock",
-        "documentation": {}
-    },
-    {
-        "label": "MagicMock",
+        "label": "Mock",
         "importPath": "unittest.mock",
         "description": "unittest.mock",
         "isExtraImport": true,
@@ -120,6 +121,23 @@
         "description": "libgen_api_modern.search_request",
         "isExtraImport": true,
         "detail": "libgen_api_modern.search_request",
+        "documentation": {}
+    },
+    {
+        "label": "SearchRequest",
+        "importPath": "libgen_api_modern.search_request",
+        "description": "libgen_api_modern.search_request",
+        "isExtraImport": true,
+        "detail": "libgen_api_modern.search_request",
+        "documentation": {}
+    },
+    {
+        "label": "pytest",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "pytest",
+        "description": "pytest",
+        "detail": "pytest",
         "documentation": {}
     },
     {
@@ -158,6 +176,24 @@
         "documentation": {}
     },
     {
+        "label": "x",
+        "kind": 5,
+        "importPath": "libgen_api_modern.search_request",
+        "description": "libgen_api_modern.search_request",
+        "peekOfCode": "x = SearchRequest(\"pride and prejudice\")\nprint(type(x.aggregate_request_data()))",
+        "detail": "libgen_api_modern.search_request",
+        "documentation": {}
+    },
+    {
+        "label": "TestSearchRequest",
+        "kind": 6,
+        "importPath": "tests.test_agg",
+        "description": "tests.test_agg",
+        "peekOfCode": "class TestSearchRequest(unittest.TestCase):\n    def setUp(self):\n        self.search_request = SearchRequest(\"test query\")\n    def test_aggregate_request_data_keys(self):\n        # Mock the necessary methods to isolate the function\n        self.search_request.get_search_page = Mock(return_value=Mock(text='<html><table><tr><td>test</td></tr></table></html>'))\n        self.search_request.strip_i_tag_from_soup = Mock()\n        self.search_request.col_names = ['ID', 'Title', 'Author(s)', 'Year', 'Pages', 'Language', 'Extension', 'Size']\n        result = self.search_request.aggregate_request_data()\n        self.assertTrue(all('ID' in book for book in result))",
+        "detail": "tests.test_agg",
+        "documentation": {}
+    },
+    {
         "label": "TestSearchRequest",
         "kind": 6,
         "importPath": "tests.test_libgen",
@@ -171,7 +207,7 @@
         "kind": 6,
         "importPath": "tests.test_libgen",
         "description": "tests.test_libgen",
-        "peekOfCode": "class TestLibgenSearch:\n    @pytest.fixture\n    def libgen_search(self):\n        return LibgenSearch()\n    @patch('api.libgen_search.SearchRequest.aggregate_request_data')\n    def test_search(self, mock_aggregate_request_data, libgen_search):\n        mock_aggregate_request_data.return_value = [{\"Title\": \"Some Book\"}]\n        results = libgen_search.search(\"Python\", \"title\")\n        assert len(results) == 1\n        assert results[0]['Title'] == \"Some Book\"",
+        "peekOfCode": "class TestLibgenSearch:\n    @pytest.fixture\n    def libgen_search(self):\n        return LibgenSearch()\n    def test_search(self, libgen_search):\n        results = libgen_search.search(\"Python\", \"title\")\n        assert len(results) > 0\n        assert \"Title\" in results[0]\n    def test_search_filtered(self, libgen_search):\n        filters = {\"Author(s)\": \"Mark Lutz\"}",
         "detail": "tests.test_libgen",
         "documentation": {}
     }

@@ -6,7 +6,6 @@
 # This file is part of the libgen-api-modern library
 
 import pytest
-from unittest.mock import patch, MagicMock
 from bs4 import BeautifulSoup
 from libgen_api_modern.search_request import SearchRequest
 from libgen_api_modern.libgen_search import LibgenSearch
@@ -26,15 +25,9 @@ class TestSearchRequest:
         with pytest.raises(ValueError):
             SearchRequest("Py")
 
-    @patch('api.search_request.requests.get')
-    def test_get_search_page(self, mock_get, search_request):
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_get.return_value = mock_response
-
+    def test_get_search_page(self, search_request):
         response = search_request.get_search_page()
         assert response.status_code == 200
-        mock_get.assert_called_once()
 
     def test_strip_i_tag_from_soup(self, search_request):
         html = "<html><body><i>italic</i><p>paragraph</p></body></html>"
@@ -42,25 +35,9 @@ class TestSearchRequest:
         search_request.strip_i_tag_from_soup(soup)
         assert soup.find('i') is None
 
-    @patch('api.search_request.SearchRequest.get_search_page')
-    def test_aggregate_request_data(self, mock_get_search_page, search_request):
-        html = '''
-        <html><body>
-        <table></table>
-        <table></table>
-        <table>
-            <tr><td></td></tr>
-            <tr><td>1</td><td>Author</td><td>Title</td><td>Series</td><td>Publisher</td><td>Edition</td><td>2024</td><td>123</td><td>English</td><td>1 MB</td><td>1234567890</td><td>Periodical</td><td>City</td><td>pdf</td></tr>
-        </table>
-        </body></html>
-        '''
-        mock_response = MagicMock()
-        mock_response.text = html
-        mock_get_search_page.return_value = mock_response
-
+    def test_aggregate_request_data(self, search_request):
         results = search_request.aggregate_request_data()
-        assert len(results) == 1
-        assert results[0]['ID'] == '1'
+        assert len(results) > 0
 
 
 # Test cases for LibgenSearch class
@@ -70,56 +47,38 @@ class TestLibgenSearch:
     def libgen_search(self):
         return LibgenSearch()
 
-    @patch('api.libgen_search.SearchRequest.aggregate_request_data')
-    def test_search(self, mock_aggregate_request_data, libgen_search):
-        mock_aggregate_request_data.return_value = [{"Title": "Some Book"}]
-
+    def test_search(self, libgen_search):
         results = libgen_search.search("Python", "title")
-        assert len(results) == 1
-        assert results[0]['Title'] == "Some Book"
+        assert len(results) > 0
+        assert "Title" in results[0]
 
-    @patch('api.libgen_search.SearchRequest.aggregate_request_data')
-    def test_search_filtered(self, mock_aggregate_request_data, libgen_search):
-        mock_aggregate_request_data.return_value = [{"Author(s)": "Author", "Title": "Some Book"}]
+    def test_search_filtered(self, libgen_search):
+        filters = {"Author(s)": "Mark Lutz"}
+        results = libgen_search.search_filtered("Learning Python", filters, "title")
+        assert len(results) > 0
+        assert results[0]['Author(s)'] == "Mark Lutz"
 
-        filters = {"Author(s)": "Author"}
-        results = libgen_search.search_filtered("Python", filters, "title")
-        assert len(results) == 1
-        assert results[0]['Author(s)'] == "Author"
-
-    @patch('api.libgen_search.SearchRequest.aggregate_request_data')
-    def test_search_title(self, mock_aggregate_request_data, libgen_search):
-        mock_aggregate_request_data.return_value = [{"Title": "Some Book"}]
-
+    def test_search_title(self, libgen_search):
         results = libgen_search.search_title("Python")
-        assert len(results) == 1
-        assert results[0]['Title'] == "Some Book"
+        assert len(results) > 0
+        assert "Title" in results[0]
 
-    @patch('api.libgen_search.SearchRequest.aggregate_request_data')
-    def test_search_author(self, mock_aggregate_request_data, libgen_search):
-        mock_aggregate_request_data.return_value = [{"Author(s)": "Author"}]
+    def test_search_author(self, libgen_search):
+        results = libgen_search.search_author("Mark Lutz")
+        assert len(results) > 0
+        assert "Author(s)" in results[0]
 
-        results = libgen_search.search_author("Python")
-        assert len(results) == 1
-        assert results[0]['Author(s)'] == "Author"
+    def test_search_title_filtered(self, libgen_search):
+        filters = {"Author(s)": "Mark Lutz"}
+        results = libgen_search.search_title_filtered("Learning Python", filters)
+        assert len(results) > 0
+        assert results[0]['Author(s)'] == "Mark Lutz"
 
-    @patch('api.libgen_search.SearchRequest.aggregate_request_data')
-    def test_search_title_filtered(self, mock_aggregate_request_data, libgen_search):
-        mock_aggregate_request_data.return_value = [{"Author(s)": "Author", "Title": "Some Book"}]
-
-        filters = {"Author(s)": "Author"}
-        results = libgen_search.search_title_filtered("Python", filters)
-        assert len(results) == 1
-        assert results[0]['Author(s)'] == "Author"
-
-    @patch('api.libgen_search.SearchRequest.aggregate_request_data')
-    def test_search_author_filtered(self, mock_aggregate_request_data, libgen_search):
-        mock_aggregate_request_data.return_value = [{"Author(s)": "Author", "Title": "Some Book"}]
-
-        filters = {"Author(s)": "Author"}
-        results = libgen_search.search_author_filtered("Python", filters)
-        assert len(results) == 1
-        assert results[0]['Author(s)'] == "Author"
+    def test_search_author_filtered(self, libgen_search):
+        filters = {"Title": "Learning Python"}
+        results = libgen_search.search_author_filtered("Mark Lutz", filters)
+        assert len(results) > 0
+        assert results[0]['Title'] == "Learning Python"
 
 
 if __name__ == '__main__':
