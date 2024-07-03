@@ -30,7 +30,7 @@ Perform a basic search -
 ```python
 # search_title()
 
-from libgen_api_enhanced import LibgenSearch
+from libgen_api_modern.libgen_search import LibgenSearch
 s = LibgenSearch()
 results = s.search_title("Pride and Prejudice")
 print(results)
@@ -39,6 +39,7 @@ print(results)
 Check out the [results layout](#results-layout) to see available fields and how the results data is formatted.
 
 ## Basic Searching:
+
 Search by title or author:
 
 ### Title:
@@ -46,7 +47,7 @@ Search by title or author:
 ```python
 # search_title()
 
-from libgen_api_enhanced import LibgenSearch
+from libgen_api_modern.libgen_search import LibgenSearch
 s = LibgenSearch()
 results = s.search_title("Pride and Prejudice")
 print(results)
@@ -57,7 +58,7 @@ print(results)
 ```python
 # search_author()
 
-from libgen_api_enhanced import LibgenSearch
+from libgen_api_modern.libgen_search import LibgenSearch
 s = LibgenSearch()
 results = s.search_author("Jane Austen")
 print(results)
@@ -74,7 +75,7 @@ print(results)
 ```python
 # search_title_filtered()
 
-from libgen_api_enhanced import LibgenSearch
+from libgen_api_modern.libgen_search import LibgenSearch
 
 tf = LibgenSearch()
 title_filters = {"Year": "2007", "Extension": "epub"}
@@ -87,7 +88,7 @@ print(titles)
 ```python
 # search_author_filtered()
 
-from libgen_api_enhanced import LibgenSearch
+from libgen_api_modern.libgen_search import LibgenSearch
 
 af = LibgenSearch()
 author_filters = {"Language": "German", "Year": "2009"}
@@ -100,7 +101,7 @@ print(titles)
 ```python
 # search_author_filtered(exact_match = False)
 
-from libgen_api_enhanced import LibgenSearch
+from libgen_api_modern.libgen_search import LibgenSearch
 
 ne_af = LibgenSearch()
 partial_filters = {"Year": "200"}
@@ -115,24 +116,27 @@ Results are returned as a list of dictionaries:
 
 ```json
 [
-  {
-    "ID": "123456",
-    "Author": "John Smith",
-    "Title": "Title",
-    "Publisher": "Publisher",
-    "Year": "2021"
-    "Pages": "410",
-    "Language": "German",
-    "Size": "1005 Kb",
-    "Extension": "epub",
-    "Mirror_1": "http://example.com",
-    "Mirror_2": "http://example.com",
-    "Mirror_3": "http://example.com",
-    "Mirror_4": "http://example.com",
-    "Mirror_5": "http://example.com",
-    "Direct_Download_Link": "http://example.com",
-    "Cover": "https://covers.openlibrary.org/b/olid/OL1234-M.jpg"
-  }]
+    {
+        "Title": "Example title",
+        "Author(s)": "Example author(s)",
+        "Series": "Example series",
+        "Periodical": "Example periodical",
+        "Publisher": "Example publisher",
+        "City": "Example city",
+        "Year": "Example year",
+        "Edition": "Example edition",
+        "Language": "Example language",
+        "Pages": "Example pages",
+        "ISBN": "Example ISBN",
+        "ID": "Example id",
+        "Size": "Example size",
+        "Extension": "Example extension",
+        "Cover": "Example cover link",
+        "MD5": "Example hash",
+        "Direct_Download_Link": "Example link"
+    }
+]
+
 ```
 
 ## Contributors
