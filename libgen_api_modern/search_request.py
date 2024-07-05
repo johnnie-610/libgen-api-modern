@@ -182,11 +182,8 @@ class SearchRequest:
                 md5 = book["MD5"]
                 title = urllib.parse.quote(book["Title"])
                 extension = book["Extension"]
-                book['Direct_Download_Link'] = f"http://download.library.lol/main/{download_id}/{md5}/{title}.{extension}"
+                book['Direct_Download_Link'] = f"https://download.library.lol/main/{download_id}/{md5}/{title}.{extension}"
 
         return raw_data
 
 
-
-x = SearchRequest("prince and the pauper")
-print(x.aggregate_request_data())
