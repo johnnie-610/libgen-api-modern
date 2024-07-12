@@ -52,7 +52,7 @@ Search by title or author:
 ```python
 # search_title()
 
-from libgen_api_modern.libgen_search import LibgenSearch
+from libgen_api_modern import LibgenSearch
 s = LibgenSearch()
 results = s.search_title("Pride and Prejudice")
 print(results)
@@ -72,7 +72,7 @@ print(results)
 ```python
 # search_author()
 
-from libgen_api_modern.libgen_search import LibgenSearch
+from libgen_api_modern import LibgenSearch
 s = LibgenSearch()
 results = s.search_author("Jane Austen")
 print(results)
@@ -101,7 +101,7 @@ print(results)
 ```python
 # search_title_filtered()
 
-from libgen_api_modern.libgen_search import LibgenSearch
+from libgen_api_modern import LibgenSearch
 
 tf = LibgenSearch()
 title_filters = {"Year": "2007", "Extension": "epub"}
@@ -114,7 +114,7 @@ print(titles)
 ```python
 # search_author_filtered()
 
-from libgen_api_modern.libgen_search import LibgenSearch
+from libgen_api_modern import LibgenSearch
 
 af = LibgenSearch()
 author_filters = {"Language": "German", "Year": "2009"}
@@ -127,7 +127,7 @@ print(titles)
 ```python
 # search_author_filtered(exact_match = False)
 
-from libgen_api_modern.libgen_search import LibgenSearch
+from libgen_api_modern import LibgenSearch
 
 ne_af = LibgenSearch()
 partial_filters = {"Year": "200"}
