@@ -21,22 +21,27 @@ Search Library Genesis programmatically using an enhanced Python library. This f
 
 Install the package -
 
+using pipx
+
 ```
-pip install libgen-api-modern
+pipx install libgen-api-modern
+```
+
+using poetry
+```
+poetry add libgen-api-modern
 ```
 
 Perform a basic search -
 
-```python
-# search_title()
+```python 
+# search()
 
-from libgen_api_modern.libgen_search import LibgenSearch
+from libgen_api_modern import LibgenSearch
 s = LibgenSearch()
-results = s.search_title("Pride and Prejudice")
+results = s.search("The Alchemist")
 print(results)
 ```
-
-Check out the [results layout](#results-layout) to see available fields and how the results data is formatted.
 
 ## Basic Searching:
 
@@ -53,6 +58,15 @@ results = s.search_title("Pride and Prejudice")
 print(results)
 ```
 
+or
+
+```python 
+from libgen_api_modern import LibgenSearch
+s = LibgenSearch()
+results = s.search("The Alchemist", search_type="title")
+print(results)
+```
+
 ### Author:
 
 ```python
@@ -63,6 +77,18 @@ s = LibgenSearch()
 results = s.search_author("Jane Austen")
 print(results)
 ```
+
+or 
+
+
+```python 
+from libgen_api_modern import LibgenSearch
+s = LibgenSearch()
+results = s.search("The Alchemist", search_type="author")
+print(results)
+```
+
+> You can provide title, author, ISBN, publisher, year, language, or series as arguments to search_type
 
 ## Filtered Searching
 
