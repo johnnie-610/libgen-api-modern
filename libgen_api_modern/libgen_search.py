@@ -12,7 +12,8 @@ from .search_request import SearchRequest
 
 class LibgenSearch:
 
-    def search(self, query: str, search_type: str = "def") -> List[Dict[str, str]]:
+    @staticmethod
+    def search(query: str, search_type: str = "def") -> List[Dict[str, str]]:
         """
         Searches for books based on the given query.
 
@@ -41,8 +42,8 @@ class LibgenSearch:
             # If any other error occurs, raise an Exception
             raise Exception(f"Error during search: {e}")
     
+    @staticmethod
     def search_filtered(
-        self,
         query: str,
         filters: Dict[str, str],
         search_type: str = "def",
@@ -86,7 +87,8 @@ class LibgenSearch:
             # If any other error occurs, raise an Exception
             raise Exception(f"Error during search or filtering: {e}")
 
-    def search_title(self, query: str) -> List[Dict[str, str]]:
+    @staticmethod
+    def search_title(query: str) -> List[Dict[str, str]]:
         """
         Searches for books by title.
 
@@ -100,17 +102,10 @@ class LibgenSearch:
             ValueError: If the query is shorter than 3 characters.
             Exception: If an error occurs during the search.
         """
-        try:
-            search_request = SearchRequest(query, search_type="title")
-            results: List[Dict[str, str]] = search_request.aggregate_request_data()
-            return results
-        except ValueError as e:
-            raise ValueError(f"Search query is too short: {e}")
-        except Exception as e:
-            raise Exception(f"Error during search: {e}")
+        return LibgenSearch.search(query, "title")
 
+    @staticmethod
     def search_author(
-        self,
         query: str,
     ) -> List[Dict[str, str]]:
         """
@@ -126,21 +121,10 @@ class LibgenSearch:
             ValueError: If the query is shorter than 3 characters.
             Exception: If an error occurs during the search.
         """
-        try:
-            # Create a SearchRequest object with the given query and search type
-            search_request = SearchRequest(query, search_type="author")
+        return LibgenSearch.search(query, "author")
 
-            # Aggregate the request data and return the result
-            return search_request.aggregate_request_data()
-        except ValueError as e:
-            # If the query is too short, raise a ValueError
-            raise ValueError(f"Search query is too short: {e}")
-        except Exception as e:
-            # If any other error occurs, raise an Exception
-            raise Exception(f"Error during search: {e}")
-
+    @staticmethod
     def search_title_filtered(
-        self,
         query: str,
         filters: Dict[str, str],
         exact_match: bool = True
@@ -162,24 +146,7 @@ class LibgenSearch:
         Returns:
             List[Dict[str, str]]: A list of dictionaries representing the filtered search results.
         """
-        try:
-            # Create a SearchRequest object with the given query and search type
-            search_request = SearchRequest(query, search_type="title")
-
-            # Aggregate the request data
-            results: List[Dict[str, str]] = search_request.aggregate_request_data()
-
-            # Apply filters to the results and return the filtered results
-            filtered_results: List[Dict[str, str]] = filter_results(
-                results=results, filters=filters, exact_match=exact_match
-            )
-            return filtered_results
-        except ValueError as e:
-            # If the query is too short, raise a ValueError
-            raise ValueError(f"Search query is too short: {e}")
-        except Exception as e:
-            # If any other error occurs, raise an Exception
-            raise Exception(f"Error during search or filtering: {e}")
+        return LibgenSearch.search_filtered(query, filters, "title")
 
     def search_author_filtered(
         self,
@@ -201,22 +168,7 @@ class LibgenSearch:
         Raises:
             Exception: If an error occurs during the search or filtering.
         """
-        try:
-            # Create a SearchRequest object with the given query and search type
-            search_request: SearchRequest = SearchRequest(query, search_type="author")
-            
-            # Aggregate the request data
-            results: List[Dict[str, str]] = search_request.aggregate_request_data()
-            
-            # Apply filters to the results and return the filtered results
-            filtered_results: List[Dict[str, str]] = filter_results(
-                results=results, filters=filters, exact_match=exact_match
-            )
-            return filtered_results
-        except Exception as e:
-            # If an error occurs, log the error and return an empty list
-            print(f"An error occurred while searching and filtering authors: {e}")
-            return []
+        return LibgenSearch.search_filtered(query, filters, "author")
 
 
 
