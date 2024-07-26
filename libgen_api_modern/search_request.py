@@ -4,10 +4,9 @@
 # https://opensource.org/licenses/MIT
 # 
 # This file is part of the libgen-api-modern library
-import time
 import aiohttp
-import requests
 import asyncio
+import concurrent.futures
 import urllib.parse
 
 from bs4 import BeautifulSoup
@@ -15,7 +14,7 @@ from bs4.element import Tag
 
 from json import dumps
 
-from typing import Optional, List, Dict, Union
+from typing import Optional, List, Dict
 
 
 
