@@ -48,6 +48,24 @@
         "documentation": {}
     },
     {
+        "label": "time",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "time",
+        "description": "time",
+        "detail": "time",
+        "documentation": {}
+    },
+    {
+        "label": "aiohttp",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "aiohttp",
+        "description": "aiohttp",
+        "detail": "aiohttp",
+        "documentation": {}
+    },
+    {
         "label": "requests",
         "kind": 6,
         "isExtraImport": true,
@@ -57,12 +75,12 @@
         "documentation": {}
     },
     {
-        "label": "logging",
+        "label": "asyncio",
         "kind": 6,
         "isExtraImport": true,
-        "importPath": "logging",
-        "description": "logging",
-        "detail": "logging",
+        "importPath": "asyncio",
+        "description": "asyncio",
+        "detail": "asyncio",
         "documentation": {}
     },
     {
@@ -99,6 +117,14 @@
         "documentation": {}
     },
     {
+        "label": "dumps",
+        "importPath": "json",
+        "description": "json",
+        "isExtraImport": true,
+        "detail": "json",
+        "documentation": {}
+    },
+    {
         "label": "pytest",
         "kind": 6,
         "isExtraImport": true,
@@ -128,7 +154,7 @@
         "kind": 6,
         "importPath": "libgen_api_modern.libgen_search",
         "description": "libgen_api_modern.libgen_search",
-        "peekOfCode": "class LibgenSearch:\n    def search(self, query: str, search_type: str = \"def\") -> List[Dict[str, str]]:\n        \"\"\"\n        Searches for books based on the given query.\n        Args:\n            query (str): The search query.\n            search_type (str, optional): The type of search to perform. Defaults to \"def\".\n                -Options are: 'def', 'author(s)', 'title', 'series', 'publisher', 'year', 'language', 'isbn', 'md5.\n        Raises:\n            ValueError: If the query is shorter than 3 characters.",
+        "peekOfCode": "class LibgenSearch:\n    @staticmethod\n    def search(query: str, search_type: str = \"def\") -> List[Dict[str, str]]:\n        \"\"\"\n        Searches for books based on the given query.\n        Args:\n            query (str): The search query.\n            search_type (str, optional): The type of search to perform. Defaults to \"def\".\n                -Options are: 'def', 'author(s)', 'title', 'series', 'publisher', 'year', 'language', 'isbn', 'md5.\n        Raises:",
         "detail": "libgen_api_modern.libgen_search",
         "documentation": {}
     },
@@ -147,15 +173,6 @@
         "importPath": "libgen_api_modern.search_request",
         "description": "libgen_api_modern.search_request",
         "peekOfCode": "class SearchRequest:\n    col_names = [\n        \"ID\",\n        \"Author(s)\",\n        \"Title\",\n        \"Series\",\n        \"Publisher\",\n        \"Edition\",\n        \"Year\",\n        \"Pages\",",
-        "detail": "libgen_api_modern.search_request",
-        "documentation": {}
-    },
-    {
-        "label": "x",
-        "kind": 5,
-        "importPath": "libgen_api_modern.search_request",
-        "description": "libgen_api_modern.search_request",
-        "peekOfCode": "x = SearchRequest(\"prince and the pauper\")\nprint(x.aggregate_request_data())",
         "detail": "libgen_api_modern.search_request",
         "documentation": {}
     },

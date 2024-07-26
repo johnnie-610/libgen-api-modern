@@ -69,38 +69,24 @@ class LibgenSearch:
             List[Dict[str, str]]: A list of dictionaries representing the filtered search results.
         """
         try:
-            # Create a SearchRequest object with the given query and search type
             search_request = SearchRequest(query, search_type=search_type)
 
-            # Aggregate the request data
             results: List[Dict[str, str]] = search_request.aggregate_request_data()
 
-            # Apply filters to the results and return the filtered results
             filtered_results: List[Dict[str, str]] = filter_results(
                 results=results, filters=filters, exact_match=exact_match
             )
             return filtered_results
         except ValueError as e:
-            # If the query is too short, raise a ValueError
             raise ValueError(f"Search query is too short: {e}")
         except Exception as e:
-            # If any other error occurs, raise an Exception
             raise Exception(f"Error during search or filtering: {e}")
 
     @staticmethod
     def search_title(query: str) -> List[Dict[str, str]]:
         """
-        Searches for books by title.
-
-        Args:
-            query (str): The title search query.
-
-        Returns:
-            List[Dict[str, str]]: A list of dictionaries representing the search results.
-
-        Raises:
-            ValueError: If the query is shorter than 3 characters.
-            Exception: If an error occurs during the search.
+        Deprecated. Use search() instead.
+        .
         """
         return LibgenSearch.search(query, "title")
 
@@ -109,17 +95,7 @@ class LibgenSearch:
         query: str,
     ) -> List[Dict[str, str]]:
         """
-        Searches for books by author and returns the search results.
-
-        Args:
-            query (str): The author search query.
-
-        Returns:
-            List[Dict[str, str]]: A list of dictionaries representing the search results.
-
-        Raises:
-            ValueError: If the query is shorter than 3 characters.
-            Exception: If an error occurs during the search.
+        Deprecated. Use search() instead.
         """
         return LibgenSearch.search(query, "author")
 
@@ -130,21 +106,7 @@ class LibgenSearch:
         exact_match: bool = True
     ) -> List[Dict[str, str]]:
         """
-        Searches for books by title and filters the results based on the given filters.
-
-        Args:
-            query (str): The title to search for.
-            filters (Dict[str, str]): The filters to apply to the search results.
-            exact_match (bool, optional): If True, only include results that exactly match
-                the filters. If False, include results that partially match the filters.
-                Defaults to True.
-
-        Raises:
-            ValueError: If the query is shorter than 3 characters.
-            Exception: If an error occurs during the search or filtering.
-
-        Returns:
-            List[Dict[str, str]]: A list of dictionaries representing the filtered search results.
+        Deprecated. Use search_filtered() instead.
         """
         return LibgenSearch.search_filtered(query, filters, "title")
 
@@ -155,18 +117,7 @@ class LibgenSearch:
         exact_match: bool = True
     ) -> List[Dict[str, str]]:
         """
-        Searches for books by author and filters the results based on the given filters.
-
-        Args:
-            query (str): The author search query.
-            filters (Dict[str, str]): The filters to apply to the search results.
-            exact_match (bool, optional): Whether to perform exact matching. Defaults to True.
-
-        Returns:
-            List[Dict[str, str]]: A list of dictionaries representing the filtered search results.
-
-        Raises:
-            Exception: If an error occurs during the search or filtering.
+        Deprecated. Use search_filtered() instead.
         """
         return LibgenSearch.search_filtered(query, filters, "author")
 
@@ -232,4 +183,3 @@ def filter_results(
         raise KeyError(f"Filter field not present in results: {e}")
 
     return filtered_list
-

@@ -4,13 +4,16 @@
 # https://opensource.org/licenses/MIT
 # 
 # This file is part of the libgen-api-modern library
-
+import time
+import aiohttp
 import requests
-import logging
+import asyncio
 import urllib.parse
 
 from bs4 import BeautifulSoup
 from bs4.element import Tag
+
+from json import dumps
 
 from typing import Optional, List, Dict, Union
 
@@ -57,8 +60,33 @@ class SearchRequest:
         # Check if the query is too short
         if len(self.query) < 3:
             raise ValueError("Query is too short")
+        
+    def __str__(self) -> str:
+        return dumps(self, indent=4, default=self.default, ensure_ascii=False)
 
-    def strip_i_tag_from_soup(
+    def __repr__(self) -> str:
+        return f"SearchRequest({', '.join(f'{attr}={repr(getattr(self, attr))}' for attr in self.__dict__ if not attr.startswith('_') and getattr(self, attr) is not None)})"
+
+    @staticmethod
+    def default(obj):
+        
+        if isinstance(obj, SearchRequest):
+            return {
+                "_": obj.__class__.__name__,
+                **{attr: getattr(obj, attr) for attr in obj.__dict__ if not attr.startswith('_') and attr not in ["raw"] and getattr(obj, attr) is not None}
+            }
+        
+        return str(obj)
+        
+    async def resolve_download_link(self, mirror_link: str) -> Dict[str, str]:
+        SOURCES = {"GET", "Cloudflare", "IPFS.io"}
+        async with aiohttp.ClientSession() as session:
+            async with session.get(mirror_link) as response:
+                soup = BeautifulSoup((await response.text()), "html.parser")
+                links = {a.string: a["href"] for a in soup.find_all("a", string=SOURCES)}
+                return links
+
+    async def strip_i_tag_from_soup(
         self, soup: BeautifulSoup, /) -> None:
         """
         Remove <i> tags from a BeautifulSoup object.
@@ -70,41 +98,50 @@ class SearchRequest:
             None
         """
         # Find all <i> tags
-        subheadings: List[Tag] = soup.find_all("i")
+        subheadings: List[Tag] = await asyncio.get_event_loop().run_in_executor(None, soup.find_all, "i")
         
         # Remove each <i> tag
         for subheading in subheadings:
             subheading.decompose()
 
-    def get_search_page(self) -> requests.Response:
+    async def get_search_page(self, type: Optional[str] = "default") -> aiohttp.ClientResponse:
         """
         Get the search page from libgen.rs.
 
         Args:
             self (SearchRequest): The search request object.
+            type (Optional[str], optional): The type of search to perform.
+                Defaults to "default" for default search(non-fiction/sci-tech).
 
         Returns:
-            requests.Response: The search page as a response object.
+            aiohttp.ClientResponse: The search page as a response object.
         """
         # Join the query words with a '+' to form the parsed query
         parsed_query = "+".join(self.query.split(" "))  # type: str
-
         # Form the search URL with the parsed query and search type
-        search_url = (
-            f"https://libgen.rs/search.php?"
-            f"req={parsed_query}&"
-            f"res=100&"
-            f"view=detailed&"
-            f"phrase=1&"
-            f"column={self.search_type.lower()}"  # type: str
-        )
+        match type:
+            case "default": # searches non-fiction/sci-tech
+                search_url = (
+                    f"https://libgen.rs/search.php?"
+                    f"req={parsed_query}&"
+                    f"res=100&"
+                    f"view=detailed&"
+                    f"phrase=1&"
+                    f"column={self.search_type}"  # type: str
+                )
+            case "fiction": # searches fiction
+                search_url = f"https://libgen.rs/fiction/?q={parsed_query}"
+            case "scimag": # searches scientific articles
+                search_url = f"https://libgen.rs/scimag/?q={parsed_query}"
+        
 
         # Send a GET request to the search URL and return the response
-        search_page = requests.get(search_url)  # type: requests.Response
-        return search_page
+        async with aiohttp.ClientSession() as session:
+            search_page = await session.get(search_url)  # type: aiohttp.ClientResponse
+            return search_page
     
 
-    def aggregate_request_data(self) -> List[Dict[str, str]]:
+    async def aggregate_request_data(self) -> List[Dict[str, str]]:
         """
         Aggregate the request data from the search page.
 
@@ -115,10 +152,10 @@ class SearchRequest:
             List[Dict[str, str]]: A list of dictionaries representing the aggregated request data.
         """
         # Get the search page
-        search_page = self.get_search_page()
+        search_page = await self.get_search_page()
 
         # Parse the search page using BeautifulSoup
-        soup = BeautifulSoup(search_page.content, "html.parser")
+        soup = BeautifulSoup(await search_page.text(), "html.parser")
         self.strip_i_tag_from_soup(soup)
 
         tables = soup.find_all("table", {"border": "0", "rules": "cols", "width": "100%"})
@@ -183,7 +220,84 @@ class SearchRequest:
                 title = urllib.parse.quote(book["Title"])
                 extension = book["Extension"]
                 book['Direct_Download_Link'] = f"https://download.library.lol/main/{download_id}/{md5}/{title}.{extension}"
+            
+        # TODO: Handle scenarios where direct download link is not available or changes
 
         return raw_data
+    
+    async def aggregate_fiction_data(self) -> List[Dict[str, str]]:
+        """
+        Aggregate the fiction request data from the search page.
+
+        Returns:
+            List[Dict[str, str]]: A list of dictionaries representing the aggregated fiction request data.
+        """
+        
+        search_page = await self.get_search_page(type="fiction")
+        soup = BeautifulSoup(await search_page.text(), "html.parser")
+        
+        tbody = soup.find("tbody")
+        if not tbody:
+            return []
+
+        book_links = [
+            f"https://libgen.rs/{a['href']}"
+            for tr in tbody.find_all('tr')
+            for a in tr.find_all('a', href=True)
+        ]
+
+        async with aiohttp.ClientSession() as session:
+            tasks = [self.process_book(link, session) for link in book_links]
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                loop = asyncio.get_event_loop()
+                fiction_data = await loop.run_in_executor(executor, lambda: list(asyncio.gather(*tasks)))
+
+        return fiction_data
+
+    async def process_book(self, link: str) -> Dict[str, str]:
+        fiction_cols = {
+            "ID", "Title", "Series", "Language", "Publisher", "Year", "Format", "File Size"
+        }
+        async with aiohttp.ClientSession() as session:
+            async with session as client:
+                async with client.get(link) as response:
+                    r_soup = BeautifulSoup(await response.text(), "html.parser")
+        
+        book = {}
+        img_tag = r_soup.find('img', src=lambda x: x and x.startswith('/fictioncovers/'))
+        record = r_soup.find('table', class_='record')
+        
+        if record:
+            cells = record.find_all('tr')
+            for cell in cells:
+                data = cell.find('td', class_='field').get_text(strip=True).replace(":", "")
+                if data in fiction_cols:
+                    book[data] = cell.find('td', class_='record_title').get_text(strip=True)
+
+            authors_ul = record.find('ul', class_='catalog_authors')
+            if authors_ul:
+                book["Authors"] = ', '.join(a.text for a in authors_ul.find_all('a'))
+
+            book["Cover"] = f"https://libgen.rs{img_tag['src']}" if img_tag else None
+
+            download_links = record.find('ul', class_='record_mirrors')
+            if download_links:
+                for link in download_links.find_all('a'):
+                    if 'library.lol/fiction' in link['href']:
+                        mirror_link = link['href']
+                        d_link = await self.resolve_download_link(mirror_link)
+                        
+                        book["Direct_Download_Link"] = d_link["GET"] or None
+                    break
+        return book
+
+        # TODO: add method to get scimag data
+async def test():
+    sr = SearchRequest("romance")
+
+    x = await sr.aggregate_fiction_data()
+
+    print(x)
 
 
+asyncio.run(test())

@@ -11,6 +11,7 @@ packages = [{include = "libgen_api_modern"}]
 python = "^3.9"
 requests = "^2.32.3"
 bs4 = "^0.0.2"
+aiohttp = "^3.9.5"
 
 
 [tool.poetry.group.dev.dependencies]
