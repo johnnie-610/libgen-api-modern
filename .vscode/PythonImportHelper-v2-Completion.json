@@ -1,5 +1,14 @@
 [
     {
+        "label": "asyncio",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "asyncio",
+        "description": "asyncio",
+        "detail": "asyncio",
+        "documentation": {}
+    },
+    {
         "label": "List",
         "importPath": "typing",
         "description": "typing",
@@ -40,30 +49,20 @@
         "documentation": {}
     },
     {
-        "label": "aiohttp",
-        "kind": 6,
+        "label": "SearchRequest",
+        "importPath": "libgen_api_modern.search_request",
+        "description": "libgen_api_modern.search_request",
         "isExtraImport": true,
-        "importPath": "aiohttp",
-        "description": "aiohttp",
-        "detail": "aiohttp",
+        "detail": "libgen_api_modern.search_request",
         "documentation": {}
     },
     {
-        "label": "asyncio",
+        "label": "httpx",
         "kind": 6,
         "isExtraImport": true,
-        "importPath": "asyncio",
-        "description": "asyncio",
-        "detail": "asyncio",
-        "documentation": {}
-    },
-    {
-        "label": "concurrent.futures",
-        "kind": 6,
-        "isExtraImport": true,
-        "importPath": "concurrent.futures",
-        "description": "concurrent.futures",
-        "detail": "concurrent.futures",
+        "importPath": "httpx",
+        "description": "httpx",
+        "detail": "httpx",
         "documentation": {}
     },
     {
@@ -73,14 +72,6 @@
         "importPath": "urllib.parse",
         "description": "urllib.parse",
         "detail": "urllib.parse",
-        "documentation": {}
-    },
-    {
-        "label": "BeautifulSoup",
-        "importPath": "bs4",
-        "description": "bs4",
-        "isExtraImport": true,
-        "detail": "bs4",
         "documentation": {}
     },
     {
@@ -117,36 +108,11 @@
         "documentation": {}
     },
     {
-        "label": "SearchRequest",
-        "importPath": "libgen_api_modern.search_request",
-        "description": "libgen_api_modern.search_request",
-        "isExtraImport": true,
-        "detail": "libgen_api_modern.search_request",
-        "documentation": {}
-    },
-    {
-        "label": "LibgenSearch",
-        "importPath": "libgen_api_modern.libgen_search",
-        "description": "libgen_api_modern.libgen_search",
-        "isExtraImport": true,
-        "detail": "libgen_api_modern.libgen_search",
-        "documentation": {}
-    },
-    {
         "label": "LibgenSearch",
         "kind": 6,
         "importPath": "libgen_api_modern.libgen_search",
         "description": "libgen_api_modern.libgen_search",
-        "peekOfCode": "class LibgenSearch:\n    @staticmethod\n    def search(query: str, search_type: str = \"def\") -> List[Dict[str, str]]:\n        \"\"\"\n        Searches for books based on the given query.\n        Args:\n            query (str): The search query.\n            search_type (str, optional): The type of search to perform. Defaults to \"def\".\n                -Options are: 'def', 'author(s)', 'title', 'series', 'publisher', 'year', 'language', 'isbn', 'md5.\n        Raises:",
-        "detail": "libgen_api_modern.libgen_search",
-        "documentation": {}
-    },
-    {
-        "label": "filter_results",
-        "kind": 2,
-        "importPath": "libgen_api_modern.libgen_search",
-        "description": "libgen_api_modern.libgen_search",
-        "peekOfCode": "def filter_results(\n        results: List[Dict[str, str]],\n        filters: Dict[str, str],\n        exact_match: bool = True\n) -> List[Dict[str, str]]:\n    \"\"\"\n    Returns a list of results that match the given filter criteria.\n    Args:\n        results (List[Dict[str, str]]): List of dictionaries containing search results.\n        filters (Dict[str, str]): Filters to apply to the search results.",
+        "peekOfCode": "class LibgenSearch:\n    @staticmethod\n    async def search_fiction(query: str) -> List[Dict[str, str]]:\n        \"\"\"\n        Searches for fiction books based on the given query.\n        Args:\n            query (str): The search query.\n        Raises:\n            ValueError: If the query is shorter than 3 characters.\n            Exception: If an error occurs during the search.",
         "detail": "libgen_api_modern.libgen_search",
         "documentation": {}
     },
@@ -160,20 +126,11 @@
         "documentation": {}
     },
     {
-        "label": "TestSearchRequest",
-        "kind": 6,
-        "importPath": "tests.test_libgen",
-        "description": "tests.test_libgen",
-        "peekOfCode": "class TestSearchRequest:\n    @pytest.fixture\n    def search_request(self):\n        return SearchRequest(\"Python\", \"title\")\n    def test_initialization(self, search_request):\n        assert search_request.query == \"Python\"\n        assert search_request.search_type == \"title\"\n    def test_initialization_short_query(self):\n        with pytest.raises(ValueError):\n            SearchRequest(\"Py\")",
-        "detail": "tests.test_libgen",
-        "documentation": {}
-    },
-    {
         "label": "TestLibgenSearch",
         "kind": 6,
         "importPath": "tests.test_libgen",
         "description": "tests.test_libgen",
-        "peekOfCode": "class TestLibgenSearch:\n    @pytest.fixture\n    def libgen_search(self):\n        return LibgenSearch()\n    def test_search(self, libgen_search):\n        results = libgen_search.search(\"Python\", \"title\")\n        assert len(results) > 0\n        assert \"Title\" in results[0]\n    def test_search_filtered(self, libgen_search):\n        filters = {\"Author(s)\": \"Mark Lutz\"}",
+        "peekOfCode": "class TestLibgenSearch:\n    # search_fiction returns a list of fiction books for a valid query\n    @pytest.mark.asyncio\n    async def test_search_fiction_valid_query(self, mocker):\n        mocker.patch('libgen_api_modern.search_request.SearchRequest.aggregate_fiction_data', return_value=[{\"Title\": \"Pirate Adventures\"}])\n        result = await LibgenSearch.search_fiction(\"pirate\")\n        assert result == [{\"Title\": \"Pirate Adventures\"}], \"Arrr! The search results be not what I expected!\"\n    # search_fiction_filtered returns filtered fiction books based on provided filters\n    @pytest.mark.asyncio\n    async def test_search_fiction_filtered_valid_query(self, mocker):",
         "detail": "tests.test_libgen",
         "documentation": {}
     }

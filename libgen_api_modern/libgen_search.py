@@ -5,15 +5,72 @@
 # 
 # This file is part of the libgen-api-modern library
 
-
 from typing import List, Dict
-from .search_request import SearchRequest
+from libgen_api_modern.search_request import SearchRequest
 
 
 class LibgenSearch:
 
     @staticmethod
-    def search(query: str, search_type: str = "def") -> List[Dict[str, str]]:
+    async def search_fiction(query: str) -> List[Dict[str, str]]:
+        """
+        Searches for fiction books based on the given query.
+
+        Args:
+            query (str): The search query.
+
+        Raises:
+            ValueError: If the query is shorter than 3 characters.
+            Exception: If an error occurs during the search.
+
+        Returns:
+            List[Dict[str, str]]: A list of dictionaries representing the search results.
+        """
+        try:
+            search_request = SearchRequest(query)
+            
+            return await search_request.aggregate_fiction_data()
+        except ValueError as e:
+            raise ValueError(f"Search query is too short: {e}")
+        except Exception as e:
+            raise Exception(f"An error occurred during the search: {e}")
+    
+    async def search_fiction_filtered(
+        self,
+        query: str,
+        filters: Dict[str, str],
+        exact_match: bool = False
+    ) -> List[Dict[str, str]]:
+        """
+        Searches for fiction books based on the given query and applies filters.
+
+        Args:
+            query (str): The search query.
+            filters (Dict[str, str]): Filters to apply to the search results.
+            exact_match (bool, optional): If True, only include results that exactly match
+                the filters. If False, include results that partially match the filters.
+                Defaults to True.
+
+        Raises:
+            ValueError: If the query is shorter than 3 characters.
+            Exception: If an error occurs during the search or filtering.
+
+        Returns:
+            List[Dict[str, str]]: A list of dictionaries representing the filtered search results.
+        """
+        try:
+            search_request = SearchRequest(query)
+
+            results = await search_request.aggregate_fiction_data()
+
+            return await LibgenSearch.filter_results(results, filters, exact_match)
+        except ValueError as e:
+            raise ValueError(f"Search query is too short: {e}")
+        except Exception as e:
+            raise Exception(f"An error occurred during the search: {e}")
+
+    @staticmethod
+    async def search(query: str, search_type: str = "def") -> List[Dict[str, str]]:
         """
         Searches for books based on the given query.
 
@@ -30,24 +87,20 @@ class LibgenSearch:
             List[Dict[str, str]]: A list of dictionaries representing the search results.
         """
         try:
-            # Create a SearchRequest object with the given query and search type
             search_request = SearchRequest(query, search_type=search_type)
             
-            # Aggregate the request data and return the result
-            return search_request.aggregate_request_data()
+            return await search_request.aggregate_request_data()
         except ValueError as e:
-            # If the query is too short, raise a ValueError
             raise ValueError(f"Search query is too short: {e}")
         except Exception as e:
-            # If any other error occurs, raise an Exception
             raise Exception(f"Error during search: {e}")
     
     @staticmethod
-    def search_filtered(
+    async def search_filtered(
         query: str,
         filters: Dict[str, str],
         search_type: str = "def",
-        exact_match: bool = True
+        exact_match: bool = False
     ) -> List[Dict[str, str]]:
         """
         Searches for books based on the given query and applies filters.
@@ -71,9 +124,9 @@ class LibgenSearch:
         try:
             search_request = SearchRequest(query, search_type=search_type)
 
-            results: List[Dict[str, str]] = search_request.aggregate_request_data()
+            results: List[Dict[str, str]] = await search_request.aggregate_request_data()
 
-            filtered_results: List[Dict[str, str]] = filter_results(
+            filtered_results: List[Dict[str, str]] = await LibgenSearch.filter_results(
                 results=results, filters=filters, exact_match=exact_match
             )
             return filtered_results
@@ -83,103 +136,70 @@ class LibgenSearch:
             raise Exception(f"Error during search or filtering: {e}")
 
     @staticmethod
-    def search_title(query: str) -> List[Dict[str, str]]:
+    async def search_title(query: str) -> List[Dict[str, str]]:
         """
         Deprecated. Use search() instead.
         .
         """
-        return LibgenSearch.search(query, "title")
+        return await LibgenSearch.search(query, "title")
 
     @staticmethod
-    def search_author(
+    async def search_author(
         query: str,
     ) -> List[Dict[str, str]]:
         """
         Deprecated. Use search() instead.
         """
-        return LibgenSearch.search(query, "author")
+        return await LibgenSearch.search(query, "author")
 
     @staticmethod
-    def search_title_filtered(
+    async def search_title_filtered(
         query: str,
         filters: Dict[str, str],
-        exact_match: bool = True
+        exact_match: bool = False
     ) -> List[Dict[str, str]]:
         """
         Deprecated. Use search_filtered() instead.
         """
-        return LibgenSearch.search_filtered(query, filters, "title")
+        return await LibgenSearch.search_filtered(query, filters, "title")
 
-    def search_author_filtered(
+    async def search_author_filtered(
         self,
         query: str,
         filters: Dict[str, str],
-        exact_match: bool = True
+        exact_match: bool = False
     ) -> List[Dict[str, str]]:
         """
         Deprecated. Use search_filtered() instead.
         """
-        return LibgenSearch.search_filtered(query, filters, "author")
+        return await LibgenSearch.search_filtered(query, filters, "author")
 
-
-
-def filter_results(
+    @classmethod
+    async def filter_results(
+        cls,
         results: List[Dict[str, str]],
         filters: Dict[str, str],
-        exact_match: bool = True
-) -> List[Dict[str, str]]:
-    """
-    Returns a list of results that match the given filter criteria.
-
-    Args:
-        results (List[Dict[str, str]]): List of dictionaries containing search results.
-        filters (Dict[str, str]): Filters to apply to the search results.
-        exact_match (bool, optional): If True, only include results that exactly match
-            the filters. If False, include results that partially match the filters.
-            Defaults to True.
-
-    Returns:
-        List[Dict[str, str]]: List of dictionaries containing filtered search results.
-
-    Note:
-        When exact-match = False,
-        we run a case-insensitive check between each filter field and each result.
-
-        exact_match defaults to True -
-        this is to maintain consistency with older versions of this library.
-
-    Raises:
-        ValueError: If the given filters are empty or if the query is too short.
-        KeyError: If a filter field is not present in the results.
-    """
-
-    if not filters:
-        raise ValueError("No filters provided")
-
-    filtered_list: List[Dict[str, str]] = []
-
-    try:
-        # If exact_match = True, only include results that exactly match the filters
-        if exact_match:
-            for result in results:
-                # Check whether a candidate result matches the given filters
-                if filters.items() <= result.items():
-                    filtered_list.append(result)
-
-        # If exact_match = False, include results that partially match the filters
-        else:
-            for result in results:
-                filter_matches_result = True  # Initialize flag to True
-                for field, query in filters.items():
-                    # Check whether each filter field partially matches the result
-                    if query.casefold() not in result[field].casefold():
-                        filter_matches_result = False
+        exact_match: bool = False
+    ) -> List[Dict[str, str]]:
+        def match(item: str, filter_value: str) -> bool:
+            if exact_match:
+                return item == filter_value
+            else:
+                return filter_value.lower() in item.lower()
+        
+        filtered_results = []
+        for result in results:
+            match_all_filters = True
+            for key, value in filters.items():
+                if key in result:
+                    if not match(result[key], value):
+                        match_all_filters = False
                         break
-                if filter_matches_result:
-                    filtered_list.append(result)
-
-    except KeyError as e:
-        # If a filter field is not present in the results, raise a KeyError
-        raise KeyError(f"Filter field not present in results: {e}")
-
-    return filtered_list
+                else:
+                    match_all_filters = False
+                    break
+            
+            if match_all_filters:
+                filtered_results.append(result)
+        
+        return filtered_results

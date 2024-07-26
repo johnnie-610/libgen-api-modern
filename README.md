@@ -7,14 +7,18 @@ Search Library Genesis programmatically using an enhanced Python library. This f
 - [libgen-api-modern](#libgen-api-modern)
   - [Contents](#contents)
   - [Getting Started](#getting-started)
-  - [Basic Searching:](#basic-searching)
-    - [Title:](#title)
-    - [Author:](#author)
+  - [NOTICE](#notice)
+    - [Non-fiction/Sci-tech](#non-fictionsci-tech)
+    - [Fiction](#fiction)
+  - [Basic Searching](#basic-searching)
+    - [Title](#title)
+    - [Author](#author)
   - [Filtered Searching](#filtered-searching)
     - [Filtered Title Searching](#filtered-title-searching)
-    - [Filtered Author Searching](#filtered-author-searching)
     - [Non-exact Filtered Searching](#non-exact-filtered-searching)
   - [Results Layout](#results-layout)
+    - [Non-fiction/sci-tech result layout](#non-fictionsci-tech-result-layout)
+    - [Fiction result layout](#fiction-result-layout)
   - [Contributors](#contributors)
 
 ## Getting Started
@@ -28,63 +32,62 @@ pipx install libgen-api-modern
 ```
 
 using poetry
+
 ```
 poetry add libgen-api-modern
 ```
 
+## NOTICE
+
+With libgen-api-modern library, you can search for:
+
+- non-fiction/sci-tech
+- fiction
+- scientific articles - will be available soon.
+
 Perform a basic search -
 
-```python 
+### Non-fiction/Sci-tech
+
+```python
 # search()
 
 from libgen_api_modern import LibgenSearch
-s = LibgenSearch()
-results = s.search("The Alchemist")
+results = LibgenSearch.search("The Alchemist")
 print(results)
 ```
 
-## Basic Searching:
+### Fiction
+
+```python
+# search_fiction()
+
+from libgen_api_modern import LibgenSearch
+results = LibgenSearch.search_fiction("How to kill men and get away with it")
+print(results)
+```
+
+## Basic Searching
 
 Search by title or author:
 
-### Title:
+### Title
 
 ```python
-# search_title()
+# search title
 
 from libgen_api_modern import LibgenSearch
-s = LibgenSearch()
-results = s.search_title("Pride and Prejudice")
+results = LibgenSearch.search("Pride and Prejudice", search_type = "title")
 print(results)
 ```
 
-or
-
-```python 
-from libgen_api_modern import LibgenSearch
-s = LibgenSearch()
-results = s.search("The Alchemist", search_type="title")
-print(results)
-```
-
-### Author:
+### Author
 
 ```python
-# search_author()
+# search author
 
 from libgen_api_modern import LibgenSearch
-s = LibgenSearch()
-results = s.search_author("Jane Austen")
-print(results)
-```
-
-or 
-
-
-```python 
-from libgen_api_modern import LibgenSearch
-s = LibgenSearch()
-results = s.search("The Alchemist", search_type="author")
+results = LibgenSearch.search("Jane Austen", search_type = "author")
 print(results)
 ```
 
@@ -93,76 +96,82 @@ print(results)
 ## Filtered Searching
 
 - You can define a set of filters, and then use them to filter the search results that get returned.
-- By default, filtering will remove results that do not match the filters exactly (case-sensitive) -
-  - This can be adjusted by setting `exact_match=False` when calling one of the filter methods, which allows for case-insensitive and substring filtering.
+- By default, filtering will remove results that match the filters exactly (case-sensitive) -
+  - This can be adjusted by setting `exact_match=True` when calling one of the filter methods, which allows for case-insensitive and substring filtering.
 
 ### Filtered Title Searching
 
 ```python
-# search_title_filtered()
+# search_filtered()
 
 from libgen_api_modern import LibgenSearch
 
-tf = LibgenSearch()
 title_filters = {"Year": "2007", "Extension": "epub"}
-titles = tf.search_title_filtered("Pride and Prejudice", title_filters, exact_match=True)
-print(titles)
-```
-
-### Filtered Author Searching
-
-```python
-# search_author_filtered()
-
-from libgen_api_modern import LibgenSearch
-
-af = LibgenSearch()
-author_filters = {"Language": "German", "Year": "2009"}
-titles = af.search_author_filtered("Agatha Christie", author_filters, exact_match=True)
+titles = LibgenSearch.search_filtered("Pride and Prejudice", title_filters, exact_match=True)
 print(titles)
 ```
 
 ### Non-exact Filtered Searching
 
 ```python
-# search_author_filtered(exact_match = False)
+# search filtered 
+# exact_match = False
 
 from libgen_api_modern import LibgenSearch
 
-ne_af = LibgenSearch()
-partial_filters = {"Year": "200"}
-titles = ne_af.search_author_filtered("Agatha Christie", partial_filters, exact_match=False)
+partial_filters = {"Year": "2000"}
+titles = LibgenSearch.search_filtered("Agatha Christie", partial_filters, exact_match=False)
 print(titles)
 
 ```
 
 ## Results Layout
 
+### Non-fiction/sci-tech result layout
+
 Results are returned as a list of dictionaries:
 
 ```json
 [
-    {
-        "Title": "Example title",
-        "Author(s)": "Example author(s)",
-        "Series": "Example series",
-        "Periodical": "Example periodical",
-        "Publisher": "Example publisher",
-        "City": "Example city",
-        "Year": "Example year",
-        "Edition": "Example edition",
-        "Language": "Example language",
-        "Pages": "Example pages",
-        "ISBN": "Example ISBN",
-        "ID": "Example id",
-        "Size": "Example size",
-        "Extension": "Example extension",
-        "Cover": "Example cover link",
-        "MD5": "Example hash",
-        "Direct_Download_Link": "Example link"
-    }
+  {
+    'Title': 'The war of art', 
+    'Author(s)': 'Mits Free', 
+    'Series': 'example series', 
+    'Periodical': '', 
+    'Publisher': 'Libre publishers', 
+    'City': 'New York, NY', 
+    'Year': '2002', 
+    'Edition': '1st ed', 
+    'Language': 'English', 
+    'Pages': '165[159]', 
+    'ISBN': '123456789', 
+    'ID': '1487009', 
+    'Size': '430 Kb (440781)', 
+    'Extension': 'pdf', 
+    'Cover': 'https://covers.xyz.jpg', 
+    'Direct_Download_Link': 'https://download.xyz/book.pdf'
+  }
 ]
 
+```
+
+### Fiction result layout
+
+```json
+
+[
+  {
+    'Title': 'How to Get Away With It', 
+    'Language': 'English', 
+    'Year': '1873', 
+    'Publisher': 'Pub', 
+    'Format': 'EPUB', 
+    'ID': '4263532', 
+    'Authors': 'John Doe', 
+    'Cover': 'https://cover.xyz.book.jpg', 
+    'Direct_Download_Link': 'https://download.xyz.book.epub'
+  }
+]
 ```
 
 ## Contributors
