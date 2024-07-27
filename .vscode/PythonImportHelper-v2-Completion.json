@@ -57,21 +57,29 @@
         "documentation": {}
     },
     {
-        "label": "httpx",
-        "kind": 6,
-        "isExtraImport": true,
-        "importPath": "httpx",
-        "description": "httpx",
-        "detail": "httpx",
-        "documentation": {}
-    },
-    {
         "label": "urllib.parse",
         "kind": 6,
         "isExtraImport": true,
         "importPath": "urllib.parse",
         "description": "urllib.parse",
         "detail": "urllib.parse",
+        "documentation": {}
+    },
+    {
+        "label": "re",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "re",
+        "description": "re",
+        "detail": "re",
+        "documentation": {}
+    },
+    {
+        "label": "ClientSession",
+        "importPath": "aiohttp",
+        "description": "aiohttp",
+        "isExtraImport": true,
+        "detail": "aiohttp",
         "documentation": {}
     },
     {
@@ -109,10 +117,18 @@
     },
     {
         "label": "LibgenSearch",
+        "importPath": "libgen_api_modern.libgen_search",
+        "description": "libgen_api_modern.libgen_search",
+        "isExtraImport": true,
+        "detail": "libgen_api_modern.libgen_search",
+        "documentation": {}
+    },
+    {
+        "label": "LibgenSearch",
         "kind": 6,
         "importPath": "libgen_api_modern.libgen_search",
         "description": "libgen_api_modern.libgen_search",
-        "peekOfCode": "class LibgenSearch:\n    @staticmethod\n    async def search_fiction(query: str) -> List[Dict[str, str]]:\n        \"\"\"\n        Searches for fiction books based on the given query.\n        Args:\n            query (str): The search query.\n        Raises:\n            ValueError: If the query is shorter than 3 characters.\n            Exception: If an error occurs during the search.",
+        "peekOfCode": "class LibgenSearch:\n    @staticmethod\n    async def search_scientific_articles(\n        query: str\n    ) -> List[Dict[str, str]]:\n        \"\"\"\n        Searches for scientific articles based on the given query.\n        Args:\n            query (str): The search query.\n        Raises:",
         "detail": "libgen_api_modern.libgen_search",
         "documentation": {}
     },

@@ -10,6 +10,7 @@ Search Library Genesis programmatically using an enhanced Python library. This f
   - [NOTICE](#notice)
     - [Non-fiction/Sci-tech](#non-fictionsci-tech)
     - [Fiction](#fiction)
+    - [Sci-mag - Scientific articles](#sci-mag---scientific-articles)
   - [Basic Searching](#basic-searching)
     - [Title](#title)
     - [Author](#author)
@@ -19,6 +20,7 @@ Search Library Genesis programmatically using an enhanced Python library. This f
   - [Results Layout](#results-layout)
     - [Non-fiction/sci-tech result layout](#non-fictionsci-tech-result-layout)
     - [Fiction result layout](#fiction-result-layout)
+    - [Sci-mag results layout](#sci-mag-results-layout)
   - [Contributors](#contributors)
 
 ## Getting Started
@@ -43,7 +45,7 @@ With libgen-api-modern library, you can search for:
 
 - non-fiction/sci-tech
 - fiction
-- scientific articles - will be available soon.
+- scientific articles
 
 Perform a basic search -
 
@@ -53,7 +55,7 @@ Perform a basic search -
 # search()
 
 from libgen_api_modern import LibgenSearch
-results = LibgenSearch.search("The Alchemist")
+results = await LibgenSearch.search("The Alchemist")
 print(results)
 ```
 
@@ -63,7 +65,17 @@ print(results)
 # search_fiction()
 
 from libgen_api_modern import LibgenSearch
-results = LibgenSearch.search_fiction("How to kill men and get away with it")
+results = await LibgenSearch.search_fiction("How to kill men and get away with it")
+print(results)
+```
+
+### Sci-mag - Scientific articles
+
+```python
+# search_scientific_articles()
+
+from libgen_api_modern import LibgenSearch
+results = await LibgenSearch.search_scientific_articles("Solar")
 print(results)
 ```
 
@@ -77,7 +89,7 @@ Search by title or author:
 # search title
 
 from libgen_api_modern import LibgenSearch
-results = LibgenSearch.search("Pride and Prejudice", search_type = "title")
+results = await LibgenSearch.search("Pride and Prejudice", search_type = "title")
 print(results)
 ```
 
@@ -87,7 +99,7 @@ print(results)
 # search author
 
 from libgen_api_modern import LibgenSearch
-results = LibgenSearch.search("Jane Austen", search_type = "author")
+results = await LibgenSearch.search("Jane Austen", search_type = "author")
 print(results)
 ```
 
@@ -107,7 +119,7 @@ print(results)
 from libgen_api_modern import LibgenSearch
 
 title_filters = {"Year": "2007", "Extension": "epub"}
-titles = LibgenSearch.search_filtered("Pride and Prejudice", title_filters, exact_match=True)
+titles = await LibgenSearch.search_filtered("Pride and Prejudice", title_filters, exact_match=True)
 print(titles)
 ```
 
@@ -120,7 +132,7 @@ print(titles)
 from libgen_api_modern import LibgenSearch
 
 partial_filters = {"Year": "2000"}
-titles = LibgenSearch.search_filtered("Agatha Christie", partial_filters, exact_match=False)
+titles = await LibgenSearch.search_filtered("Agatha Christie", partial_filters, exact_match=False)
 print(titles)
 
 ```
@@ -134,22 +146,22 @@ Results are returned as a list of dictionaries:
 ```json
 [
   {
-    'Title': 'The war of art', 
-    'Author(s)': 'Mits Free', 
-    'Series': 'example series', 
-    'Periodical': '', 
-    'Publisher': 'Libre publishers', 
-    'City': 'New York, NY', 
-    'Year': '2002', 
-    'Edition': '1st ed', 
-    'Language': 'English', 
-    'Pages': '165[159]', 
-    'ISBN': '123456789', 
-    'ID': '1487009', 
-    'Size': '430 Kb (440781)', 
-    'Extension': 'pdf', 
-    'Cover': 'https://covers.xyz.jpg', 
-    'Direct_Download_Link': 'https://download.xyz/book.pdf'
+    "Title": "The war of art", 
+    "Author(s)": "Mits Free", 
+    "Series": "example series", 
+    "Periodical": "", 
+    "Publisher": "Libre publishers", 
+    "City": "New York, NY", 
+    "Year": "2002", 
+    "Edition": "1st ed",
+    "Language": "English",
+    "Pages": "165[159]",
+    "ISBN": "123456789",
+    "ID": "1487009",
+    "Size": "430 Kb (440781)",
+    "Extension": "pdf",
+    "Cover": "https://covers.xyz.jpg", 
+    "Direct_Download_Link": "https://download.xyz/book.pdf"
   }
 ]
 
@@ -161,22 +173,44 @@ Results are returned as a list of dictionaries:
 
 [
   {
-    'Title': 'How to Get Away With It', 
-    'Language': 'English', 
-    'Year': '1873', 
-    'Publisher': 'Pub', 
-    'Format': 'EPUB', 
-    'ID': '4263532', 
-    'Authors': 'John Doe', 
-    'Cover': 'https://cover.xyz.book.jpg', 
-    'Direct_Download_Link': 'https://download.xyz.book.epub'
+    "Title": "How to Get Away With It",
+    "Language": "English",
+    "Year": "1873",
+    "Publisher": "Pub",
+    "Format": "EPUB",
+    "ID": "4263532",
+    "Authors": "John Doe",
+    "Cover": "https://cover.xyz.book.jpg",
+    "Direct_Download_Link": "https://download.xyz.book.epub"
+  }
+]
+```
+
+### Sci-mag results layout
+
+```json
+
+[
+  {
+    "Title": "Superhuman-like dominance", 
+    "Authors": "Goated Johnnie", 
+    "DOI": "15.142/cze.12345", 
+    "Journal": "The Journal of Complete dominance", 
+    "Publisher": "Johnnie prods", 
+    "Year": "2002", 
+    "Volume": "445", 
+    "Issue": "4", 
+    "Pages": "374—387", 
+    "ID": "1142493", 
+    "Direct_Download_Link_1": "", 
+    "Direct_Download_Link_2": "https://example.zxy/article.pdf"
   }
 ]
 ```
 
 ## Contributors
 
-Please don't hesitate to raise an issue, or fork this project and improve on it.
+Please don't hesitate to raise an issue, or [fork this project](https://github.com/johnnie-610/libgen-api-modern) and improve on it.
 
 Thanks to the following people:
 
@@ -184,3 +218,5 @@ Thanks to the following people:
 - [calmoo](https://github.com/calmoo)
 - [HENRYMARTIN5](https://github.com/HENRYMARTIN5)
 - [Onurhan](https://github.com/onurhanak)
+
+Please star [this library on Github](https://github.com/johnnie-610/libgen-api-modern) if you like it.
