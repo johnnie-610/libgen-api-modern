@@ -81,7 +81,7 @@ class LibgenSearch:
             search_request = SearchRequest(query)
             
             results = await search_request.aggregate_scimag_data()
-            return await LibgenSearch.filter_results(results, filters, exact_match)
+            return await LibgenSearch.__filter_results(results, filters, exact_match)
         except ValueError as e:
             raise ValueError(f"Search query is too short: {e}")
         except Exception as e:
@@ -155,7 +155,7 @@ class LibgenSearch:
 
             results = await search_request.aggregate_fiction_data()
 
-            return await LibgenSearch.filter_results(results, filters, exact_match)
+            return await LibgenSearch.__filter_results(results, filters, exact_match)
         except ValueError as e:
             raise ValueError(f"Search query is too short: {e}")
         except Exception as e:
@@ -234,7 +234,7 @@ class LibgenSearch:
 
             results: List[Dict[str, str]] = await search_request.aggregate_request_data()
 
-            filtered_results: List[Dict[str, str]] = await LibgenSearch.filter_results(
+            filtered_results: List[Dict[str, str]] = await LibgenSearch.__filter_results(
                 results=results, filters=filters, exact_match=exact_match
             )
             return filtered_results
@@ -283,7 +283,7 @@ class LibgenSearch:
         return await LibgenSearch.search_filtered(query, filters, "author")
 
     @classmethod
-    async def filter_results(
+    async def __filter_results(
         cls,
         results: List[Dict[str, str]],
         filters: Dict[str, str],
@@ -311,9 +311,3 @@ class LibgenSearch:
                 filtered_results.append(result)
         
         return filtered_results
-
-
-async def test():
-    print(await LibgenSearch.search_scientific_articles("python"))
-
-asyncio.run(test())
