@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "libgen-api-modern"
-version = "0.1.8"
+version = "0.1.9"
 description = "Search Library Genesis. This library enables you to search Library Genesis programmatically for Non-fiction/Sci-tech, Fiction, and Sci-mag - Scientific articles."
 authors = ["Johnnie <99084912+johnnie-610@users.noreply.github.com>"]
 license = "MIT"
@@ -16,6 +16,7 @@ aiohttp = "^3.9.5"
 [tool.poetry.group.dev.dependencies]
 pytest-asyncio = "^0.23.8"
 pytest-mock = "^3.14.0"
+ipykernel = "^6.29.5"
 
 
 [tool.poetry.scripts]

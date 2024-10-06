@@ -243,45 +243,7 @@ class LibgenSearch:
         except Exception as e:
             raise Exception(f"Error during search or filtering: {e}")
 
-    @staticmethod
-    async def search_title(query: str) -> List[Dict[str, str]]:
-        """
-        Deprecated. Use search() instead.
-        .
-        """
-        return await LibgenSearch.search(query, "title")
-
-    @staticmethod
-    async def search_author(
-        query: str,
-    ) -> List[Dict[str, str]]:
-        """
-        Deprecated. Use search() instead.
-        """
-        return await LibgenSearch.search(query, "author")
-
-    @staticmethod
-    async def search_title_filtered(
-        query: str,
-        filters: Dict[str, str],
-        exact_match: bool = False
-    ) -> List[Dict[str, str]]:
-        """
-        Deprecated. Use search_filtered() instead.
-        """
-        return await LibgenSearch.search_filtered(query, filters, "title")
-
-    async def search_author_filtered(
-        self,
-        query: str,
-        filters: Dict[str, str],
-        exact_match: bool = False
-    ) -> List[Dict[str, str]]:
-        """
-        Deprecated. Use search_filtered() instead.
-        """
-        return await LibgenSearch.search_filtered(query, filters, "author")
-
+    
     @classmethod
     async def __filter_results(
         cls,

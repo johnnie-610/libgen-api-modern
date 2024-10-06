@@ -37,20 +37,7 @@ class SearchRequest:
     ]
 
     def __init__(self, query: str, search_type: Optional[str] = "def") -> None:
-        """
-        Initialize a search request object.
-
-        Args:
-            query (str): The search query.
-            search_type (Optional[str], optional): The type of search to perform.
-                Defaults to "def" for default search.
-
-        Raises:
-            ValueError: If the query is shorter than 3 characters.
-
-        Returns:
-            None
-        """
+      
         self.query = query
         self.search_type = search_type
 
@@ -73,6 +60,21 @@ class SearchRequest:
     #         }
         
     #     return str(obj)
+
+    async def resolve_mirrors(self, session: ClientSession, mirror: str) -> Dict[str, str]:
+        MIRROR_SOURCES = ["GET", "Cloudflare", "IPFS.io"]
+
+        if mirror is None:
+            raise ValueError("No mirror specified")
+
+        response = await (await session.get(mirror)).text()
+        soup = BeautifulSoup(response, "html.parser")
+
+        links = soup.find_all("a", string=MIRROR_SOURCES)
+        download_links = {link.string: link["href"] for link in links}
+        
+        return download_links
+        
         
     async def resolve_download_link(
         self, 
@@ -122,15 +124,7 @@ class SearchRequest:
 
     async def strip_i_tag_from_soup(
         self, soup: BeautifulSoup, /) -> None:
-        """
-        Remove <i> tags from a BeautifulSoup object.
-
-        Args:
-            soup (BeautifulSoup): The BeautifulSoup object to modify.
-
-        Returns:
-            None
-        """
+      
         # Find all <i> tags
         subheadings: List[Tag] = await asyncio.get_event_loop().run_in_executor(None, soup.find_all, "i")
         
@@ -176,15 +170,7 @@ class SearchRequest:
     
 
     async def aggregate_request_data(self) -> List[Dict[str, str]]:
-        """
-        Aggregate the request data from the search page.
 
-        Args:
-            self (SearchRequest): The search request object.
-
-        Returns:
-            List[Dict[str, str]]: A list of dictionaries representing the aggregated request data.
-        """
         # FIXME: Handle adding direct download links better 
         async with ClientSession() as session:
             search_page = await self.get_search_page(session)
@@ -204,7 +190,7 @@ class SearchRequest:
 
                 book_data = {}
                 img_src = None
-                md5 = None
+                mirror = None
 
                 first_row = rows[0]
                 title_td = first_row.find_all("td")[2]
@@ -214,8 +200,8 @@ class SearchRequest:
                 if img_tag:
                     img_src = img_tag.get('src')
                 a_tag = first_row.find('a', href=True)
-                if a_tag and 'md5' in a_tag['href']:
-                    md5 = a_tag['href'].split('md5=')[-1]
+                mirror = "https://libgen.rs" + a_tag['href'] if a_tag else None
+                
 
 
 
@@ -237,21 +223,29 @@ class SearchRequest:
 
                 if img_src:
                     book_data['Cover'] = f"https://libgen.rs{img_src}"
-                if md5:
-                    book_data['MD5'] = md5.lower()
+                
+                book_data['Mirror'] = mirror
 
                 raw_data.append(book_data)
 
+        
+
 
             for book in raw_data:
-                if "ID" in book and "MD5" in book and "Title" in book and "Extension" in book:
-                    id = book["ID"]
-                    download_id = str(id)[:-3] + "000"
-                    md5 = book["MD5"]
-                    title = urllib.parse.quote(book["Title"])
-                    extension = book["Extension"]
-                    book['Direct_Download_Link'] = f"https://download.library.lol/main/{download_id}/{md5}/{title}.{extension}"
-                    del book['MD5']
+                if "Mirror" in book:
+                    mirror = book["Mirror"]
+                    if mirror:
+                        download_links = await self.resolve_mirrors(session, mirror=mirror)
+                    else:
+                        book["Direct Download Link"] = None
+                    for key, value in download_links.items():
+                        if key == "GET":
+                            book["Direct Download Link 1"] = value
+                        elif key == "Cloudflare":
+                            book["Direct Download Link 2"] = value
+                        elif key == "IPFS.io":
+                            book["Direct Download Link 3"] = value
+                del book["Mirror"]
             
         
 
@@ -259,7 +253,6 @@ class SearchRequest:
     
     
 
-        # TODO: add method to get scimag data
 
     async def aggregate_fiction_data(self) -> List[Dict[str, str]]:
         fiction_cols = [
