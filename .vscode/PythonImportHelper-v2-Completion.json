@@ -1,14 +1,5 @@
 [
     {
-        "label": "asyncio",
-        "kind": 6,
-        "isExtraImport": true,
-        "importPath": "asyncio",
-        "description": "asyncio",
-        "detail": "asyncio",
-        "documentation": {}
-    },
-    {
         "label": "List",
         "importPath": "typing",
         "description": "typing",
@@ -54,6 +45,15 @@
         "description": "libgen_api_modern.search_request",
         "isExtraImport": true,
         "detail": "libgen_api_modern.search_request",
+        "documentation": {}
+    },
+    {
+        "label": "asyncio",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "asyncio",
+        "description": "asyncio",
+        "detail": "asyncio",
         "documentation": {}
     },
     {
@@ -107,23 +107,6 @@
         "documentation": {}
     },
     {
-        "label": "pytest",
-        "kind": 6,
-        "isExtraImport": true,
-        "importPath": "pytest",
-        "description": "pytest",
-        "detail": "pytest",
-        "documentation": {}
-    },
-    {
-        "label": "LibgenSearch",
-        "importPath": "libgen_api_modern.libgen_search",
-        "description": "libgen_api_modern.libgen_search",
-        "isExtraImport": true,
-        "detail": "libgen_api_modern.libgen_search",
-        "documentation": {}
-    },
-    {
         "label": "LibgenSearch",
         "kind": 6,
         "importPath": "libgen_api_modern.libgen_search",
@@ -139,15 +122,6 @@
         "description": "libgen_api_modern.search_request",
         "peekOfCode": "class SearchRequest:\n    col_names = [\n        \"ID\",\n        \"Author(s)\",\n        \"Title\",\n        \"Series\",\n        \"Publisher\",\n        \"Edition\",\n        \"Year\",\n        \"Pages\",",
         "detail": "libgen_api_modern.search_request",
-        "documentation": {}
-    },
-    {
-        "label": "TestLibgenSearch",
-        "kind": 6,
-        "importPath": "tests.test_libgen",
-        "description": "tests.test_libgen",
-        "peekOfCode": "class TestLibgenSearch:\n    # search_fiction returns a list of fiction books for a valid query\n    @pytest.mark.asyncio\n    async def test_search_fiction_valid_query(self, mocker):\n        mocker.patch('libgen_api_modern.search_request.SearchRequest.aggregate_fiction_data', return_value=[{\"Title\": \"Pirate Adventures\"}])\n        result = await LibgenSearch.search_fiction(\"pirate\")\n        assert result == [{\"Title\": \"Pirate Adventures\"}], \"Arrr! The search results be not what I expected!\"\n    # search_fiction_filtered returns filtered fiction books based on provided filters\n    @pytest.mark.asyncio\n    async def test_search_fiction_filtered_valid_query(self, mocker):",
-        "detail": "tests.test_libgen",
         "documentation": {}
     }
 ]

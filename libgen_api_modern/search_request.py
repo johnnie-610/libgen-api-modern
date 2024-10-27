@@ -153,7 +153,7 @@ class SearchRequest:
         match type:
             case "default": # searches non-fiction/sci-tech
                 search_url = (
-                    f"https://libgen.rs/search.php?"
+                    f"https://libgen.is/search.php?"
                     f"req={parsed_query}&"
                     f"res=100&"
                     f"view=detailed&"
@@ -161,9 +161,9 @@ class SearchRequest:
                     f"column={self.search_type}"  # type: str
                 )
             case "fiction": # searches fiction
-                search_url = f"https://libgen.rs/fiction/?q={parsed_query}"
+                search_url = f"https://libgen.is/fiction/?q={parsed_query}"
             case "scimag": # searches scientific articles
-                search_url = f"https://libgen.rs/scimag/?q={parsed_query}"
+                search_url = f"https://libgen.is/scimag/?q={parsed_query}"
         
 
         return await (await session.get(search_url)).text()
@@ -200,7 +200,7 @@ class SearchRequest:
                 if img_tag:
                     img_src = img_tag.get('src')
                 a_tag = first_row.find('a', href=True)
-                mirror = "https://libgen.rs" + a_tag['href'] if a_tag else None
+                mirror = "https://libgen.is" + a_tag['href'] if a_tag else None
                 
 
 
@@ -222,7 +222,7 @@ class SearchRequest:
                         book_data[col_name] = ""
 
                 if img_src:
-                    book_data['Cover'] = f"https://libgen.rs{img_src}"
+                    book_data['Cover'] = f"https://libgen.is{img_src}"
                 
                 book_data['Mirror'] = mirror
 
@@ -277,7 +277,7 @@ class SearchRequest:
             async def process_row(row):
                 title_td = row.find_all('td')[2]
                 link_tag = title_td.find('a')
-                link = f"https://libgen.rs{link_tag['href']}"
+                link = f"https://libgen.is{link_tag['href']}"
 
                 r_soup_content = await self.fetch_page(session, link)
                 r_soup = BeautifulSoup(r_soup_content, "html.parser")
@@ -300,7 +300,7 @@ class SearchRequest:
                         return ''
 
                 book["Authors"] = get_authors(record)
-                book["Cover"] = f"https://libgen.rs{img_tag['src']}" if img_tag else None
+                book["Cover"] = f"https://libgen.is{img_tag['src']}" if img_tag else None
 
                 download_links = record.find('ul', class_='record_mirrors').find_all('a')
                 mirror_link = None
@@ -347,7 +347,7 @@ class SearchRequest:
             async def process_row(row):
                 title_td = row.find_all('td')[1]
                 link_tag = title_td.find('a')
-                link = f"https://libgen.rs{link_tag['href']}"
+                link = f"https://libgen.is{link_tag['href']}"
 
                 r_soup_content = await self.fetch_page(session, link)
                 r_soup = BeautifulSoup(r_soup_content, "html.parser")

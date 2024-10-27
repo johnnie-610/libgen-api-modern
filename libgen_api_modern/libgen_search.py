@@ -5,7 +5,7 @@
 # 
 # This file is part of the libgen-api-modern library
 
-import asyncio
+# import asyncio
 from typing import List, Dict
 from libgen_api_modern.search_request import SearchRequest
 
