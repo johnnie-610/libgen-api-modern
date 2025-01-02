@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "libgen-api-modern"
-version = "0.1.13"
+version = "0.1.14"
 description = "Search Library Genesis. This library enables you to search Library Genesis programmatically for Non-fiction/Sci-tech, Fiction, and Sci-mag - Scientific articles."
 authors = ["Johnnie <99084912+johnnie-610@users.noreply.github.com>"]
 license = "MIT"
