@@ -305,7 +305,7 @@ class SearchRequest:
                 download_links = record.find('ul', class_='record_mirrors').find_all('a')
                 mirror_link = None
                 for link in download_links:
-                    if 'library.lol/fiction' in link['href']:
+                    if 'library.lol/fiction' in link['href'] or 'library.gift/fiction' in link['href']:
                         mirror_link = link['href']
                         break
 
