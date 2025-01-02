@@ -6,14 +6,17 @@
 # This file is part of the libgen-api-modern library
 
 import asyncio
-import urllib.parse
 import re
+import tracemalloc
+from asyncio import sslproto
 from aiohttp import ClientSession
 from bs4 import BeautifulSoup
 from bs4.element import Tag
 
-from json import dumps
 from typing import Optional, List, Dict
+
+tracemalloc.start()
+setattr(sslproto._SSLProtocolTransport, "_start_tls_compatible", True)
 
 
 
@@ -44,30 +47,15 @@ class SearchRequest:
         if len(self.query) < 3:
             raise ValueError("Query is too short")
         
-    # def __str__(self) -> str:
-    #     return dumps(self, indent=4, default=self.default, ensure_ascii=False)
+    
 
-    # def __repr__(self) -> str:
-    #     return f"SearchRequest({', '.join(f'{attr}={repr(getattr(self, attr))}' for attr in self.__dict__ if not attr.startswith('_') and getattr(self, attr) is not None)})"
-
-    # @staticmethod
-    # def default(obj):
-        
-    #     if isinstance(obj, SearchRequest):
-    #         return {
-    #             "_": obj.__class__.__name__,
-    #             **{attr: getattr(obj, attr) for attr in obj.__dict__ if not attr.startswith('_') and attr not in ["raw"] and getattr(obj, attr) is not None}
-    #         }
-        
-    #     return str(obj)
-
-    async def resolve_mirrors(self, session: ClientSession, mirror: str) -> Dict[str, str]:
+    async def resolve_mirrors(self, session: ClientSession, mirror: str, proxy: Optional[str] = None) -> Dict[str, str]:
         MIRROR_SOURCES = ["GET", "Cloudflare", "IPFS.io"]
 
         if mirror is None:
             raise ValueError("No mirror specified")
 
-        response = await (await session.get(mirror)).text()
+        response = await (await session.get(mirror, proxy=proxy)).text()
         soup = BeautifulSoup(response, "html.parser")
 
         links = soup.find_all("a", string=MIRROR_SOURCES)
@@ -80,14 +68,15 @@ class SearchRequest:
         self, 
         session: ClientSession, 
         mirror_1: str | None = None,
-        mirror_2: str | None = None
+        mirror_2: str | None = None,
+        proxy: Optional[str] = None
     ) -> str | None:
         if mirror_1 is None and mirror_2 is None:
             raise ValueError("No mirrors specified")
         
         download_link = None
         if mirror_1 is not None and mirror_2 is None:
-            response = await (await session.get(mirror_1)).text()
+            response = await (await session.get(mirror_1, proxy=proxy)).text()
         
             soup = BeautifulSoup(response, "html.parser")
 
@@ -99,7 +88,7 @@ class SearchRequest:
                 download_link = None
 
         if  mirror_2 is not None and mirror_1 is None:
-            response = await (await session.get(mirror_2)).text()
+            response = await (await session.get(mirror_2, proxy=proxy)).text()
             soup = BeautifulSoup(response, "html.parser")
             
             try:
@@ -132,23 +121,12 @@ class SearchRequest:
         for subheading in subheadings:
             subheading.decompose()
 
-    async def fetch_page(self, session: ClientSession, url):
-        response = await (await session.get(url)).text()
+    async def fetch_page(self, session: ClientSession, url, proxy: Optional[str] = None):
+        response = await (await session.get(url, proxy=proxy)).text()
         return response
     
     
-    async def get_search_page(self, session: ClientSession, type: Optional[str] = "default"):
-        """
-        Get the search page from libgen.rs.
-
-        Args:
-            self (SearchRequest): The search request object.
-            type (Optional[str], optional): The type of search to perform.
-                Defaults to "default" for default search(non-fiction/sci-tech).
-
-        Returns:
-            aiohttp.ClientResponse: The search page as a response object.
-        """
+    async def get_search_page(self, session: ClientSession, proxy: Optional[str] = None, type: Optional[str] = "default"):
         parsed_query = "+".join(self.query.split(" "))  # type: str
         match type:
             case "default": # searches non-fiction/sci-tech
@@ -166,14 +144,13 @@ class SearchRequest:
                 search_url = f"https://libgen.is/scimag/?q={parsed_query}"
         
 
-        return await (await session.get(search_url)).text()
+        return await (await session.get(search_url, proxy=proxy)).text()
     
 
-    async def aggregate_request_data(self) -> List[Dict[str, str]]:
+    async def aggregate_request_data(self, proxy: Optional[str] = None) -> List[Dict[str, str]]:
 
-        # FIXME: Handle adding direct download links better 
         async with ClientSession() as session:
-            search_page = await self.get_search_page(session)
+            search_page = await self.get_search_page(session, proxy=proxy)
 
             soup = BeautifulSoup(search_page, "html.parser")
             await self.strip_i_tag_from_soup(soup)
@@ -235,7 +212,7 @@ class SearchRequest:
                 if "Mirror" in book:
                     mirror = book["Mirror"]
                     if mirror:
-                        download_links = await self.resolve_mirrors(session, mirror=mirror)
+                        download_links = await self.resolve_mirrors(session, mirror=mirror, proxy=proxy)
                     else:
                         book["Direct Download Link"] = None
                     for key, value in download_links.items():
@@ -254,7 +231,7 @@ class SearchRequest:
     
 
 
-    async def aggregate_fiction_data(self) -> List[Dict[str, str]]:
+    async def aggregate_fiction_data(self, proxy: Optional[str] = None) -> List[Dict[str, str]]:
         fiction_cols = [
             "ID",
             "Title",
@@ -267,7 +244,7 @@ class SearchRequest:
         ]
 
         async with ClientSession() as session:
-            search_page_content = await self.get_search_page(session, type="fiction")
+            search_page_content = await self.get_search_page(session, type="fiction", proxy=proxy)
             soup = BeautifulSoup(search_page_content, "html.parser")
             
             tbody = soup.find("tbody")
@@ -279,7 +256,7 @@ class SearchRequest:
                 link_tag = title_td.find('a')
                 link = f"https://libgen.is{link_tag['href']}"
 
-                r_soup_content = await self.fetch_page(session, link)
+                r_soup_content = await self.fetch_page(session, link, proxy=proxy)
                 r_soup = BeautifulSoup(r_soup_content, "html.parser")
                 
                 book = {}
@@ -311,7 +288,7 @@ class SearchRequest:
 
                 if mirror_link:
                     
-                    d_link = await self.resolve_download_link(session, mirror_link)
+                    d_link = await self.resolve_download_link(session, mirror_link, proxy=proxy)
                     book["Direct_Download_Link"] = d_link if d_link else None
                 fiction_data.append(book)
 
@@ -322,7 +299,7 @@ class SearchRequest:
 
         return fiction_data
     
-    async def aggregate_scimag_data(self) -> List[Dict[str, str]]:
+    async def aggregate_scimag_data(self, proxy: Optional[str] = None) -> List[Dict[str, str]]:
         scimag_cols = [
             "Title",
             "Authors",
@@ -338,7 +315,7 @@ class SearchRequest:
         ]
 
         async with ClientSession() as session:
-            search_page = await self.get_search_page(session, type="scimag")
+            search_page = await self.get_search_page(session, type="scimag", proxy=proxy)
             soup = BeautifulSoup(search_page, "html.parser")
             tbody = soup.find("tbody")
             scimag_data = []
@@ -349,7 +326,7 @@ class SearchRequest:
                 link_tag = title_td.find('a')
                 link = f"https://libgen.is{link_tag['href']}"
 
-                r_soup_content = await self.fetch_page(session, link)
+                r_soup_content = await self.fetch_page(session, link, proxy=proxy)
                 r_soup = BeautifulSoup(r_soup_content, "html.parser")
                 
                 book = {}
@@ -369,12 +346,12 @@ class SearchRequest:
                     
                     if 'library.lol/scimag' in link['href']:
                         mirror_1 = link['href']
-                        d_link = await self.resolve_download_link(session, mirror_1 = mirror_1)
+                        d_link = await self.resolve_download_link(session, mirror_1 = mirror_1, proxy=proxy)
                         links.append(d_link)
 
                     elif 'sci-hub.ru' in link['href']:
                         mirror_2 = link['href']
-                        d_link = await self.resolve_download_link(session, mirror_2 = mirror_2)
+                        d_link = await self.resolve_download_link(session, mirror_2 = mirror_2, proxy=proxy)
                         links.append(d_link)
                 
                 book["Direct_Download_Link_1"] = "" if link[0] is None else links[0]
