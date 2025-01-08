@@ -20,7 +20,7 @@ import httpx
 from pathlib import Path
 
 # Import from our library file
-from libgen_search import SearchRequest, BookData, SearchType
+from .search_request import SearchRequest, BookData, SearchType
 
 console = Console()
 
