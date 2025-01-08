@@ -1,4 +1,4 @@
-# Copyright (c) 2024 Johnnie
+# Copyright (c) 2024-2025 Johnnie
 #
 # This software is released under the MIT License.
 # https://opensource.org/licenses/MIT
@@ -8,202 +8,317 @@
 import asyncio
 import re
 import httpx
-from lxml import html
-from typing import Optional, List, Dict
-from typing import Optional, List, Dict
+from lxml import html, etree
+from typing import Optional, List, Dict, Tuple
+from dataclasses import dataclass
+from enum import Enum
+from functools import lru_cache
+import time
+from concurrent.futures import ThreadPoolExecutor
+
+
+class SearchType(Enum):
+    DEFAULT = "def"
+    FICTION = "fiction"
+    SCIMAG = "scimag"
+
+
+@dataclass(frozen=True)
+class BookData:
+    id: str
+    authors: tuple[str, ...]
+    title: str
+    series: Optional[str]
+    publisher: str
+    year: str
+    pages: str
+    language: str
+    size: str
+    extension: str
+    isbn: Optional[str]
+    edition: Optional[str]
+    cover_url: Optional[str]
+    download_url: Optional[str]
+
+
+@dataclass(frozen=True)
+class BkData:
+    id: str
+    authors: tuple[str, ...]  # Tuple for immutability and better performance
+    title: str
+    series: Optional[str]
+    publisher: str
+    year: str
+    pages: str
+    language: str
+    size: str
+    extension: str
+    mirrors: Dict[str, str]
+    isbn: Optional[str] = None
+    edition: Optional[str] = None
 
 
 class SearchRequest:
+    DOMAINS = ["libgen.is", "libgen.st", "libgen.rs"]
+    BASE_MIRROR = "https://libgen.li"
 
-    domains = ["libgen.is", "libgen.st", "libgen.rs"]  # List of fallback domains
-    used_domain = None
-    col_names = [
-        "ID", "Author(s)", "Title", "Publisher",
-        "Year", "Pages", "Language", "Size", "Extension"
-    ]
+    # Precompile regular expressions
+    EDITION_PATTERN = re.compile(r"\[(.*?ed.*?)\]")
+    ISBN_PATTERN = re.compile(r"[\d-]{10,}")
 
-    def __init__(self, query: str, search_type: Optional[str] = "def") -> None:
+    # Precompile XPath expressions for search results
+    XPATH_CACHE = {
+        "table": etree.XPath("//table[@width='100%' and @cellspacing='1']"),
+        "rows": etree.XPath(".//tr[position()>1]"),
+        "cells": etree.XPath("./td"),
+        "author_links": etree.XPath(".//a"),
+        "title_link": etree.XPath(".//a[contains(@href, 'book/index.php')]"),
+        "series_elem": etree.XPath(
+            ".//font[@face='Times' and @color='green']/i[not(ancestor::a)]"
+        ),
+        "isbn_elem": etree.XPath(".//font[@face='Times' and @color='green']/i[last()]"),
+    }
+
+    # Precompile XPath expressions for mirror page
+    MIRROR_XPATH = {
+        "cover": etree.XPath("//table//a[contains(@href, '/covers/')]/img/@src"),
+        "download": etree.XPath(
+            "//td[@bgcolor='#A9F5BC']//a[contains(@href, 'get.php')]/@href"
+        ),
+    }
+
+    def __init__(
+        self, query: str, search_type: SearchType = SearchType.DEFAULT
+    ) -> None:
+        if len(query.strip()) < 3:
+            raise ValueError("Query must be at least 3 characters long")
         self.query = query
         self.search_type = search_type
-        if len(self.query) < 3:
-            raise ValueError("Query is too short")
+        self.used_domain: Optional[str] = None
+        self.client = httpx.AsyncClient(
+            timeout=5.0,
+            limits=httpx.Limits(max_keepalive_connections=5, max_connections=10),
+            http2=True,
+        )
 
-    async def resolve_mirrors(self, client: httpx.AsyncClient, mirror: str) -> Dict[str, str]:
-        
+    async def __aenter__(self):
+        return self
 
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.client.aclose()
 
-    async def fetch_page(self, client: httpx.AsyncClient, url: str) -> str:
-        response = await client.get(url, timeout=10)
-        return response.text
+    async def _fetch_mirror_page(self, md5: str) -> Tuple[Optional[str], Optional[str]]:
+        """
+        Fetch and parse the mirror page to get cover and download URLs.
+        Returns (cover_url, download_url)
+        """
+        try:
+            url = f"{self.BASE_MIRROR}/ads.php?md5={md5}"
+            response = await self.client.get(url, timeout=5.0)
+            response.raise_for_status()
 
-    async def get_search_page(self, client: httpx.AsyncClient, type: str = "default") -> str:
-        parsed_query = "+".join(self.query.split(" "))
+            tree = html.fromstring(response.text)
 
-        for domain in self.domains:
-            search_url = {
-                "default": f"https://{domain}/search.php?req={parsed_query}&lg_topic=libgen&open=0&view=simple&res=100&phrase=1&column={self.search_type}",
-                "fiction": f"https://{domain}/fiction/?q={parsed_query}",
-                "scimag": f"https://{domain}/scimag/?q={parsed_query}"
-            }.get(type, "default")
+            # Extract cover URL
+            cover_path = self.MIRROR_XPATH["cover"](tree)
+            cover_url = f"{self.BASE_MIRROR}{cover_path[0]}" if cover_path else None
 
-            try:
-                res = await self.fetch_page(client, search_url)
-                if res:
-                    self.used_domain = domain
-                    return res
-            except httpx.HTTPError:
-                print(f"Failed to fetch from {domain}, trying next...")
+            # Extract download URL
+            download_path = self.MIRROR_XPATH["download"](tree)
+            download_url = (
+                f"{self.BASE_MIRROR}/{download_path[0]}" if download_path else None
+            )
 
-        raise Exception("All LibGen mirrors are unreachable.")
+            return cover_url, download_url
 
-    async def aggregate_request_data(self) -> List[Dict[str, str]]:
-        async with httpx.AsyncClient() as client:
-            search_page = await self.get_search_page(client)
-            # with open("search_page.html", "w") as f:
-                # f.write(search_page)
-            # return
-            tree = html.fromstring(search_page)
-            table = tree.xpath("//table[@width='100%']")
-            raw_data = []
-            print(table)
+        except Exception as e:
+            print(f"Error fetching mirror page: {e}")
+            return None, None
 
-            rows = table[0].xpath(".//tr")[1:]
-            if not rows:
-                return "No results"
+    def _extract_md5_from_url(self, url: str) -> Optional[str]:
+        """Extract MD5 hash from mirror URL."""
+        md5_match = re.search(r"md5=([a-fA-F0-9]{32})", url)
+        return md5_match.group(1) if md5_match else None
 
+    async def _resolve_mirrors(
+        self, mirrors: Dict[str, str]
+    ) -> Tuple[Optional[str], Optional[str]]:
+        """
+        Resolve mirror links to get direct download URL and cover URL.
+        TODO: Add support for library.gift mirror when it's back online
+        """
+        # For now, we only use libgen.li mirror
+        for title, url in mirrors.items():
+            if "libgen.li" in url:
+                md5 = self._extract_md5_from_url(url)
+                if md5:
+                    return await self._fetch_mirror_page(md5)
+        return None, None
 
-            for row in rows:
-                book_data = {}
-                cells = row.xpath(".//td")
-                if len(cells) < 2:
-                    continue
-                for cell in cells:
-                    value = cell.text_content().strip()
-                    if not value:
-                        value = ""
-                    book_data[self.col_names[len(book_data)]] = value
-                    mirrors = {}
-                    m_sources = cell.xpath(".//a")
-                    if m_sources:
-                        for m_source in m_sources:
-                            mirrors[m_source.get('title')] = m_source.get('href')
+    async def _parse_book_data_with_mirrors(
+        self, book_data: BookData, mirrors: Dict[str, str]
+    ) -> BookData:
+        """Enhance book data with resolved mirror information."""
+        cover_url, download_url = await self._resolve_mirrors(mirrors)
 
-                    book_data["Mirrors"] = mirrors
+        # Create new BookData with resolved URLs
+        return BookData(
+            id=book_data.id,
+            authors=book_data.authors,
+            title=book_data.title,
+            series=book_data.series,
+            publisher=book_data.publisher,
+            year=book_data.year,
+            pages=book_data.pages,
+            language=book_data.language,
+            size=book_data.size,
+            extension=book_data.extension,
+            isbn=book_data.isbn,
+            edition=book_data.edition,
+            cover_url=cover_url,
+            download_url=download_url,
+        )
 
-                raw_data.append(book_data)
+    @lru_cache(maxsize=128)
+    def _build_search_url(self, domain: str) -> str:
+        """Cached URL building for repeated searches."""
+        parsed_query = "+".join(self.query.split())
 
-            return raw_data
+        if self.search_type == SearchType.FICTION:
+            return f"https://{domain}/fiction/?q={parsed_query}"
+        elif self.search_type == SearchType.SCIMAG:
+            return f"https://{domain}/scimag/?q={parsed_query}"
+        return (
+            f"https://{domain}/search.php?req={parsed_query}&lg_topic=libgen"
+            f"&open=0&view=simple&res=100&phrase=1&column={self.search_type.value}"
+        )
 
+    async def _fetch_with_timeout(self, domain: str) -> Optional[str]:
+        """Fetch from a single domain with timeout."""
+        try:
+            url = self._build_search_url(domain)
+            response = await self.client.get(url)
+            response.raise_for_status()
+            return response.text
+        except Exception:
+            return None
 
+    async def get_search_page(self) -> str:
+        """Parallel fetch from all domains."""
+        tasks = [self._fetch_with_timeout(domain) for domain in self.DOMAINS]
+        responses = await asyncio.gather(*tasks)
 
+        for domain, response in zip(self.DOMAINS, responses):
+            if response:
+                self.used_domain = domain
+                return response
 
+        raise ConnectionError("All LibGen mirrors are unreachable")
 
-            tables = tree.xpath("//table[@border='0' and @rules='rows' and @width='100%' and @align='center']")
+    def _extract_authors(self, cell: html.HtmlElement) -> tuple[str, ...]:
+        """Extract author names using cached XPath."""
+        return tuple(
+            author.text_content().strip()
+            for author in self.XPATH_CACHE["author_links"](cell)
+            if author.text_content().strip()
+        )
 
+    def _extract_title_info(
+        self, cell: html.HtmlElement
+    ) -> tuple[str, Optional[str], Optional[str], Optional[str]]:
+        """Extract title information using cached XPath."""
+        series = None
+        isbn = None
+        edition = None
 
-            for table in tables:
-                rows = table.xpath(".//tr")[1:]
-                if not rows:
-                    continue
+        series_elem = self.XPATH_CACHE["series_elem"](cell)
+        if series_elem:
+            series = series_elem[0].text_content().strip()
 
-                book_data = {}
-                cover = table.xpath(".//td[@rowspan]/a/img/@src")
-                book_data["Cover"] = f"https://{self.used_domain}{cover[0]}" if cover else None
+        title_link = self.XPATH_CACHE["title_link"](cell)[0]
+        title = title_link.text_content().strip()
 
-                title_link = table.xpath(".//tr[td/b]/td[3]//a")
-                if title_link:
-                    book_data["Title"] = title_link[0].text_content().strip()
-                    book_data["Mirror"] = f"https://{self.used_domain}{title_link[0].get('href')[2:] if title_link[0].get('href').startswith('../') else title_link[0].get('href')}"
+        isbn_match = self.XPATH_CACHE["isbn_elem"](cell)
+        if isbn_match:
+            isbn_text = isbn_match[0].text_content()
+            isbn_matches = self.ISBN_PATTERN.findall(isbn_text)
+            if isbn_matches:
+                isbn = isbn_matches[0]
 
-                for row in rows:
-                    cells = row.xpath(".//td")
-                    if len(cells) < 2:
-                        continue # Skip rows with less data
-                    label = cells[0].text_content().strip().replace(":", "")
-                    value = cells[1].text_content().strip()
-                    if label in self.col_names:
-                        book_data[label] = value
-                        if len(cells) > 3 and cells[2].text_content().strip().replace(":", "") in self.col_names:
-                            book_data[cells[2].text_content().strip().replace(":", "")] = cells[3].text_content().strip()
+        edition_match = self.EDITION_PATTERN.search(cell.text_content())
+        if edition_match:
+            edition = edition_match.group(1)
 
-                for col_name in self.col_names:
-                    book_data.setdefault(col_name, "")
+        return title, series, isbn, edition
 
-                raw_data.append(book_data)
+    def _extract_mirrors(self, cells: List[html.HtmlElement]) -> Dict[str, str]:
+        """Extract mirror links efficiently."""
+        mirrors = {}
+        for cell in cells:
+            for link in self.XPATH_CACHE["author_links"](cell):
+                title = link.get("title")
+                href = link.get("href")
+                if title and href:
+                    mirrors[title] = href
+        return mirrors
 
-            tasks = [self.resolve_mirrors(client, book["Mirror"]) for book in raw_data if "Mirror" in book]
-            mirror_results = await asyncio.gather(*tasks)
+    def _parse_book_data(self, row: html.HtmlElement) -> Optional[BookData]:
+        """Parse book data with minimal memory allocations."""
+        try:
+            cells = self.XPATH_CACHE["cells"](row)
+            if len(cells) < 10:
+                return None
 
-            for book, mirrors in zip(raw_data, mirror_results):
-                book.pop("Mirror", None)
-                book.update({f"Direct Download Link {i+1}": link for i, link in enumerate(mirrors.values())})
+            authors = self._extract_authors(cells[1])
+            title, series, isbn, edition = self._extract_title_info(cells[2])
 
-        return raw_data
+            return BkData(
+                id=cells[0].text_content().strip(),
+                authors=authors,
+                title=title,
+                series=series,
+                publisher=cells[3].text_content().strip(),
+                year=cells[4].text_content().strip(),
+                pages=cells[5].text_content().strip(),
+                language=cells[6].text_content().strip(),
+                size=cells[7].text_content().strip(),
+                extension=cells[8].text_content().strip(),
+                mirrors=self._extract_mirrors(cells[9:11]),
+                isbn=isbn,
+                edition=edition,
+            )
+        except (IndexError, AttributeError):
+            return None
 
-    async def aggregate_fiction_data(self, proxy: Optional[str] = None) -> List[Dict[str, str]]:
-        fiction_cols = [
-            "ID",
-            "Title",
-            "Series",
-            "Language",
-            "Publisher",
-            "Year",
-            "Format",
-            "File Size",
-        ]
+    async def search(self) -> List[BookData]:
+        """Perform optimized search with mirror resolution."""
+        start_time = time.time()
 
-        async with ClientSession() as session:
-            search_page_content = await self.get_search_page(session, type="fiction", proxy=proxy)
-            soup = BeautifulSoup(search_page_content, "html.parser")
+        # Get initial search results
+        search_page = await self.get_search_page()
+        tree = html.fromstring(search_page)
 
-            tbody = soup.find("tbody")
-            fiction_data = []
-            tasks = []
+        table = self.XPATH_CACHE["table"](tree)
+        if not table:
+            return []
 
-            async def process_row(row):
-                title_td = row.find_all('td')[2]
-                link_tag = title_td.find('a')
-                link = f"https://libgen.is{link_tag['href']}"
+        # Process rows in parallel
+        rows = self.XPATH_CACHE["rows"](table[0])
+        with ThreadPoolExecutor(max_workers=min(32, len(rows))) as executor:
+            initial_results = list(
+                filter(None, executor.map(self._parse_book_data, rows))
+            )
 
-                r_soup_content = await self.fetch_page(session, link, proxy=proxy)
-                r_soup = BeautifulSoup(r_soup_content, "html.parser")
+        # Resolve mirrors for each book
+        tasks = []
+        for book in initial_results:
+            task = self._parse_book_data_with_mirrors(book, book.mirrors)
+            tasks.append(task)
 
-                book = {}
-                img_tag = r_soup.find('img', src=lambda x: x and x.startswith('/fictioncovers/'))
-                record = r_soup.find('table', class_='record')
-                rs = record.find_all('tr')
-                for r in rs:
-                    cells = r.find_all('td')
-                    data = cells[0].get_text(strip=True).replace(":", "")
-                    if data in fiction_cols:
-                        book[data] = cells[1].get_text(strip=True)
+        final_results = await asyncio.gather(*tasks)
 
-                def get_authors(soup_element):
-                    authors = soup_element.find('ul', class_='catalog_authors')
-                    if authors:
-                        return ', '.join([author.text for author in authors.find_all('a')])
-                    else:
-                        return ''
+        end_time = time.time()
+        processing_time = (end_time - start_time) * 1000
+        print(f"Total processing time: {processing_time:.2f}ms")
 
-                book["Authors"] = get_authors(record)
-                book["Cover"] = f"https://libgen.is{img_tag['src']}" if img_tag else None
-
-                download_links = record.find('ul', class_='record_mirrors').find_all('a')
-                mirror_link = None
-                for link in download_links:
-                    if 'library.lol/fiction' in link['href'] or 'library.gift/fiction' in link['href']:
-                        mirror_link = link['href']
-                        break
-
-                if mirror_link:
-
-                    d_link = await self.resolve_download_link(session, mirror_link, proxy=proxy)
-                    book["Direct_Download_Link"] = d_link if d_link else None
-                fiction_data.append(book)
-
-            for row in tbody.find_all('tr'):
-                tasks.append(process_row(row))
-
-            await asyncio.gather(*tasks)
-
-        return fiction_data
+        return final_results
