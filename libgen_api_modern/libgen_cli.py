@@ -1,38 +1,63 @@
+# src/libgen_cli/main.py
 #!/usr/bin/env python3
-
-# Copyright (c) 2024-2025 Johnnie
-#
-# This software is released under the MIT License.
-# https://opensource.org/licenses/MIT
-#
-# This file is part of the libgen-api-modern library
 
 import asyncio
 import argparse
-import os
 import sys
+import signal
+from pathlib import Path
 from typing import Optional, List
+from functools import partial
+import orjson
+import aiofiles
 from rich.console import Console
 from rich.table import Table
-from rich.progress import Progress, SpinnerColumn, TextColumn
-from rich.prompt import Prompt, Confirm
+from rich.progress import (
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+    BarColumn,
+    DownloadColumn,
+    TransferSpeedColumn,
+)
 import httpx
-from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
 
-# Import from our library file
+try:
+    import uvloop
+
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+except ImportError:
+    pass  # Windows doesn't support uvloop
+
 from .search_request import SearchRequest, BookData, SearchType
 
 console = Console()
+executor = ThreadPoolExecutor(max_workers=4)  # For file I/O operations
 
 
 class LibGenCLI:
     def __init__(self):
         self.download_dir = Path.home() / "Downloads" / "libgen"
         self.download_dir.mkdir(parents=True, exist_ok=True)
+        self.client: Optional[httpx.AsyncClient] = None
+        self._setup_signal_handlers()
+
+    def _setup_signal_handlers(self):
+        """Setup graceful shutdown handlers."""
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            signal.signal(sig, self._signal_handler)
+
+    def _signal_handler(self, signum, frame):
+        """Handle shutdown signals gracefully."""
+        console.print("\n[yellow]Shutting down gracefully...[/yellow]")
+        if self.client:
+            asyncio.create_task(self.client.aclose())
+        sys.exit(0)
 
     def create_parser(self) -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser(
-            description="Library Genesis CLI Search and Download Tool",
+            description="Fast Library Genesis CLI Search and Download Tool",
             formatter_class=argparse.RawDescriptionHelpFormatter,
         )
 
@@ -65,6 +90,13 @@ class LibGenCLI:
             help="Maximum number of results to display (default: 10)",
         )
 
+        parser.add_argument(
+            "--parallel",
+            type=int,
+            default=3,
+            help="Number of parallel downloads (default: 3)",
+        )
+
         return parser
 
     def display_results(
@@ -84,26 +116,43 @@ class LibGenCLI:
         table.add_column("Format", width=6)
         table.add_column("Language", width=10)
 
+        # Pre-process all data before adding to table
+        processed_books = []
         for idx, book in enumerate(books[:limit], 1):
             authors = ", ".join(book.authors)
+            processed_books.append(
+                {
+                    "idx": str(idx),
+                    "title": (
+                        book.title[:37] + "..." if len(book.title) > 40 else book.title
+                    ),
+                    "authors": authors[:27] + "..." if len(authors) > 30 else authors,
+                    "year": book.year,
+                    "size": book.size,
+                    "extension": book.extension.upper(),
+                    "language": book.language,
+                }
+            )
+
+        # Bulk add rows
+        for book in processed_books:
             table.add_row(
-                str(idx),
-                book.title[:37] + "..." if len(book.title) > 40 else book.title,
-                authors[:27] + "..." if len(authors) > 30 else authors,
-                book.year,
-                book.size,
-                book.extension.upper(),
-                book.language,
+                book["idx"],
+                book["title"],
+                book["authors"],
+                book["year"],
+                book["size"],
+                book["extension"],
+                book["language"],
             )
 
         console.print(table)
 
         while True:
-            choice = Prompt.ask(
-                "\nSelect a book to download (1-{}) or 'q' to quit".format(
+            choice = console.input(
+                "\nSelect a book to download (1-{}) or 'q' to quit: ".format(
                     min(len(books), limit)
-                ),
-                default="q",
+                )
             )
 
             if choice.lower() == "q":
@@ -113,13 +162,18 @@ class LibGenCLI:
                 idx = int(choice) - 1
                 if 0 <= idx < len(books):
                     return books[idx]
-                else:
-                    console.print("[red]Invalid selection. Please try again.[/red]")
+                console.print("[red]Invalid selection. Please try again.[/red]")
             except ValueError:
                 console.print("[red]Invalid input. Please enter a number or 'q'.[/red]")
 
-    async def download_book(self, book: BookData, session: httpx.AsyncClient) -> bool:
-        """Download the selected book."""
+    async def _write_file(self, filepath: Path, content: bytes) -> None:
+        """Write file content asynchronously using thread executor."""
+        await asyncio.get_event_loop().run_in_executor(
+            executor, partial(filepath.write_bytes, content)
+        )
+
+    async def download_book(self, book: BookData) -> bool:
+        """Download the selected book with progress bar."""
         if not book.download_url:
             console.print("[red]No download URL available for this book.[/red]")
             return False
@@ -132,15 +186,24 @@ class LibGenCLI:
             with Progress(
                 SpinnerColumn(),
                 TextColumn("[progress.description]{task.description}"),
-                transient=True,
+                BarColumn(),
+                DownloadColumn(),
+                TransferSpeedColumn(),
             ) as progress:
-                progress.add_task(description=f"Downloading {filename}...", total=None)
+                task = progress.add_task(f"Downloading {filename}", total=None)
 
-                response = await session.get(book.download_url)
-                response.raise_for_status()
+                async with self.client.stream("GET", book.download_url) as response:
+                    response.raise_for_status()
+                    total = int(response.headers.get("content-length", 0))
+                    progress.update(task, total=total)
 
-                with open(filepath, "wb") as f:
-                    f.write(response.content)
+                    chunks = []
+                    async for chunk in response.aiter_bytes(chunk_size=8192):
+                        chunks.append(chunk)
+                        progress.update(task, advance=len(chunk))
+
+                    content = b"".join(chunks)
+                    await self._write_file(filepath, content)
 
             console.print(f"\n[green]Successfully downloaded to:[/green] {filepath}")
 
@@ -148,11 +211,11 @@ class LibGenCLI:
                 cover_filename = f"{filename}_cover.jpg"
                 cover_path = self.download_dir / cover_filename
 
-                response = await session.get(book.cover_url)
-                response.raise_for_status()
+                async with self.client.stream("GET", book.cover_url) as response:
+                    response.raise_for_status()
+                    content = await response.aread()
+                    await self._write_file(cover_path, content)
 
-                with open(cover_path, "wb") as f:
-                    f.write(response.content)
                 console.print(f"[green]Cover image downloaded to:[/green] {cover_path}")
 
             return True
@@ -162,22 +225,38 @@ class LibGenCLI:
             return False
 
     async def interactive_search(self):
-        """Interactive search mode."""
+        """Interactive search mode with improved error handling."""
         while True:
-            query = Prompt.ask("\nEnter search query (or 'q' to quit)")
-            if query.lower() == "q":
-                break
+            try:
+                query = console.input("\nEnter search query (or 'q' to quit): ")
+                if query.lower() == "q":
+                    break
 
-            search_type = Prompt.ask(
-                "Select search type",
-                choices=["default", "fiction", "scientific"],
-                default="default",
-            )
+                search_type = (
+                    console.input(
+                        "Select search type [default/fiction/scientific] (default): "
+                    )
+                    or "default"
+                )
 
-            await self.perform_search(query, search_type)
+                await self.perform_search(query, search_type)
 
-            if not Confirm.ask("\nWould you like to perform another search?"):
-                break
+                if (
+                    not console.input(
+                        "\nWould you like to perform another search? [y/N]: "
+                    )
+                    .lower()
+                    .startswith("y")
+                ):
+                    break
+            except Exception as e:
+                console.print(f"[red]Error during search: {str(e)}[/red]")
+                if (
+                    not console.input("\nWould you like to try again? [y/N]: ")
+                    .lower()
+                    .startswith("y")
+                ):
+                    break
 
     async def perform_search(self, query: str, search_type: str):
         """Perform search and handle book selection/download."""
@@ -187,33 +266,44 @@ class LibGenCLI:
             "scientific": SearchType.SCIMAG,
         }
 
-        with console.status("[bold green]Searching Library Genesis...") as status:
+        with console.status("[bold green]Searching Library Genesis...") as _:
             async with SearchRequest(query, search_type_map[search_type]) as searcher:
                 books = await searcher.search()
 
         selected_book = self.display_results(books)
         if selected_book:
-            async with httpx.AsyncClient() as client:
-                await self.download_book(selected_book, client)
+            await self.download_book(selected_book)
 
     async def run(self, args: argparse.Namespace):
-        """Main run method."""
+        """Main run method with connection pooling."""
         if args.download_dir:
             self.download_dir = Path(args.download_dir)
             self.download_dir.mkdir(parents=True, exist_ok=True)
 
-        if args.query:
-            await self.perform_search(args.query, args.type)
-        else:
-            await self.interactive_search()
+        limits = httpx.Limits(max_keepalive_connections=5, max_connections=10)
+        timeout = httpx.Timeout(10.0, connect=5.0)
+
+        async with httpx.AsyncClient(limits=limits, timeout=timeout) as client:
+            self.client = client
+            if args.query:
+                await self.perform_search(args.query, args.type)
+            else:
+                await self.interactive_search()
 
 
 def main():
+    """Entry point for the CLI tool."""
     cli = LibGenCLI()
     parser = cli.create_parser()
     args = parser.parse_args()
 
     try:
+        if sys.platform != "win32":
+            # Use uvloop on non-Windows platforms
+            import uvloop
+
+            uvloop.install()
+
         asyncio.run(cli.run(args))
     except KeyboardInterrupt:
         console.print("\n[yellow]Operation cancelled by user[/yellow]")
@@ -221,6 +311,8 @@ def main():
     except Exception as e:
         console.print(f"\n[red]An error occurred: {str(e)}[/red]")
         sys.exit(1)
+    finally:
+        executor.shutdown(wait=False)
 
 
 if __name__ == "__main__":

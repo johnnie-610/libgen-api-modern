@@ -7,169 +7,12 @@
 
 # import asyncio
 from typing import List, Dict
-from libgen_api_modern.search_request import SearchRequest
+from libgen_api_modern.search_request import SearchRequest, SearchType
 
 
 class LibgenSearch:
-
     @staticmethod
-    async def search_scientific_articles(
-        query: str,
-        proxy: str | None = None
-    ) -> List[Dict[str, str]]:
-        """
-        Searches for scientific articles based on the given query.
-
-        Args:
-            query (str): The search query.
-            proxy (str, optional): The proxy to use for the search. Defaults to None.
-                -Use http proxy only with no authentication.
-
-        Raises:
-            ValueError: If the query is shorter than 3 characters.
-            Exception: If an error occurs during the search.
-
-        Returns:
-            List[Dict[str, str]]: A list of dictionaries representing the search results.
-
-        Examples:
-
-            ```python
-            await LibgenSearch.search_scientific_articles("python")
-            ```
-
-        """
-        try:
-            search_request = SearchRequest(query)
-
-            return await search_request.aggregate_scimag_data(proxy=proxy)
-        except ValueError as e:
-            raise ValueError(f"Search query is too short: {e}")
-        except Exception as e:
-            raise Exception(f"An error occurred during the search: {e}")
-
-    async def search_scientific_articles_filtered(
-        self,
-        query: str,
-        filters: Dict[str, str],
-        exact_match: bool = False,
-        proxy: str | None = None
-    ) -> List[Dict[str, str]]:
-        """
-        Searches for scientific articles based on the given query and applies filters.
-
-        Args:
-            query (str): The search query.
-            filters (Dict[str, str]): Filters to apply to the search results.
-            exact_match (bool, optional): If True, only include results that exactly match
-                the filters. If False, include results that partially match the filters. Defaults to False.
-            proxy (str, optional): The proxy to use for the search. Defaults to None.
-                -Use http proxy only with no authentication.
-
-        Raises:
-            ValueError: If the query is shorter than 3 characters.
-            Exception: If an error occurs during the search or filtering.
-
-        Returns:
-            List[Dict[str, str]]: A list of dictionaries representing the filtered search results.
-
-        Examples:
-
-            ```python
-            filters = {"year": "2020"}
-            await LibgenSearch.search_scientific_articles_filtered("python", filters, exact_match=True)
-            ```
-
-        """
-        try:
-            search_request = SearchRequest(query)
-
-            results = await search_request.aggregate_scimag_data(proxy=proxy)
-            return await LibgenSearch.__filter_results(results, filters, exact_match)
-        except ValueError as e:
-            raise ValueError(f"Search query is too short: {e}")
-        except Exception as e:
-            raise Exception(f"An error occurred during the search: {e}")
-
-    @staticmethod
-    async def search_fiction(query: str, proxy: str | None = None) -> List[Dict[str, str]]:
-        """
-        Searches for fiction books based on the given query.
-
-        Args:
-            query (str): The search query.
-            proxy (str, optional): The proxy to use for the search. Defaults to None.
-                -Use http proxy only with no authentication.
-
-        Raises:
-            ValueError: If the query is shorter than 3 characters.
-            Exception: If an error occurs during the search.
-
-        Returns:
-            List[Dict[str, str]]: A list of dictionaries representing the search results.
-
-        Examples:
-
-            ```python
-            await LibgenSearch.search_fiction("python")
-            ```
-
-        """
-        try:
-            search_request = SearchRequest(query)
-
-            return await search_request.aggregate_fiction_data(proxy=proxy)
-        except ValueError as e:
-            raise ValueError(f"Search query is too short: {e}")
-        except Exception as e:
-            raise Exception(f"An error occurred during the search: {e}")
-
-    async def search_fiction_filtered(
-        self,
-        query: str,
-        filters: Dict[str, str],
-        exact_match: bool = False,
-        proxy: str | None = None
-    ) -> List[Dict[str, str]]:
-        """
-        Searches for fiction books based on the given query and applies filters.
-
-        Args:
-            query (str): The search query.
-            filters (Dict[str, str]): Filters to apply to the search results.
-            exact_match (bool, optional): If True, only include results that exactly match
-                the filters. If False, include results that partially match the filters.
-                Defaults to True.
-            proxy (str, optional): The proxy to use for the search. Defaults to None.
-                -Use http proxy only with no authentication.
-
-        Raises:
-            ValueError: If the query is shorter than 3 characters.
-            Exception: If an error occurs during the search or filtering.
-
-        Returns:
-            List[Dict[str, str]]: A list of dictionaries representing the filtered search results.
-
-        Examples:
-
-            ```python
-            filters = {"year": "2020"}
-            await LibgenSearch.search_fiction_filtered("python", filters, exact_match=True)
-            ```
-        """
-        try:
-            search_request = SearchRequest(query)
-
-            results = await search_request.aggregate_fiction_data(proxy=proxy)
-
-            return await LibgenSearch.__filter_results(results, filters, exact_match)
-        except ValueError as e:
-            raise ValueError(f"Search query is too short: {e}")
-        except Exception as e:
-            raise Exception(f"An error occurred during the search: {e}")
-
-    @staticmethod
-    async def search(query: str, search_type: str = "def") -> List[Dict[str, str]]:
+    async def search(query: str, search_type: str = SearchType.DEFAULT) -> List[Dict[str, str]]:
         """
         Searches for books based on the given query.
 
@@ -196,7 +39,7 @@ class LibgenSearch:
         try:
             search_request = SearchRequest(query, search_type=search_type)
 
-            return await search_request.aggregate_request_data()
+            return await search_request.search()
         except ValueError as e:
             raise ValueError(f"Search query is too short: {e}")
         except Exception as e:
@@ -206,9 +49,8 @@ class LibgenSearch:
     async def search_filtered(
         query: str,
         filters: Dict[str, str],
-        search_type: str = "def",
+        search_type: str = SearchType.DEFAULT,
         exact_match: bool = False,
-        proxy: str | None = None
     ) -> List[Dict[str, str]]:
         """
         Searches for books based on the given query and applies filters.
@@ -242,7 +84,7 @@ class LibgenSearch:
         try:
             search_request = SearchRequest(query, search_type=search_type)
 
-            results: List[Dict[str, str]] = await search_request.aggregate_request_data(proxy=proxy)
+            results: List[Dict[str, str]] = await search_request.search()
 
             filtered_results: List[Dict[str, str]] = await LibgenSearch.__filter_results(
                 results=results, filters=filters, exact_match=exact_match
@@ -254,6 +96,7 @@ class LibgenSearch:
             raise Exception(f"Error during search or filtering: {e}")
 
 
+    #FIXME: FILTER USING THE BOOKDATA MODEL
     @classmethod
     async def __filter_results(
         cls,

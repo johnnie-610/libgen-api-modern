@@ -60,7 +60,7 @@ class BkData:
 
 class SearchRequest:
     DOMAINS = ["libgen.is", "libgen.st", "libgen.rs"]
-    BASE_MIRROR = "https://libgen.is"
+    BASE_MIRROR = "https://libgen.li"
 
     # Precompile regular expressions
     EDITION_PATTERN = re.compile(r"\[(.*?ed.*?)\]")
@@ -88,17 +88,31 @@ class SearchRequest:
     }
 
     def __init__(
-        self, query: str, search_type: SearchType = SearchType.DEFAULT
+        self,
+        query: str,
+        search_type: SearchType = SearchType.DEFAULT,
+        proxy: Optional[str] = None,
+        proxy_auth: Optional[Tuple[str, str]] = None,
     ) -> None:
         if len(query.strip()) < 3:
             raise ValueError("Query must be at least 3 characters long")
         self.query = query
         self.search_type = search_type
         self.used_domain: Optional[str] = None
+        self.proxy = proxy
+        self.proxy_auth = proxy_auth
+
+        proxy_config = {}
+        if self.proxy:
+            proxy_config["http"] = self.proxy
+            proxy_config["https"] = self.proxy
+
         self.client = httpx.AsyncClient(
             timeout=5.0,
             limits=httpx.Limits(max_keepalive_connections=5, max_connections=10),
             http2=True,
+            proxy=proxy_config,
+            auth=self.proxy_auth,
         )
 
     async def __aenter__(self):
@@ -292,6 +306,7 @@ class SearchRequest:
 
     async def search(self) -> List[BookData]:
         """Perform optimized search with mirror resolution."""
+        start_time = time.time()
 
         # Get initial search results
         search_page = await self.get_search_page()
@@ -316,5 +331,31 @@ class SearchRequest:
 
         final_results = await asyncio.gather(*tasks)
 
+        end_time = time.time()
+        processing_time = (end_time - start_time) * 1000
+        print(f"Total processing time: {processing_time:.2f}ms")
 
         return final_results
+
+
+# Example usage:
+async def main():
+    async with SearchRequest("python", proxy="http://localhost:8080") as search:
+        results = await search.search()
+        for book in results:
+            print(book)
+
+
+asyncio.run(main())
+
+
+async def main_with_auth():
+    async with SearchRequest(
+        "python"
+    ) as search:
+        results = await search.search()
+        for book in results:
+            print(book)
+
+
+asyncio.run(main_with_auth())
