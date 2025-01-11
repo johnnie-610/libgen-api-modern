@@ -10,52 +10,10 @@ import re
 import httpx
 from lxml import html, etree
 from typing import Optional, List, Dict, Tuple
-from dataclasses import dataclass
-from enum import Enum
 from functools import lru_cache
-import time
 from concurrent.futures import ThreadPoolExecutor
-
-
-class SearchType(Enum):
-    DEFAULT = "def"
-    FICTION = "fiction"
-    SCIMAG = "scimag"
-
-
-@dataclass(frozen=True)
-class BookData:
-    id: str
-    authors: tuple[str, ...]
-    title: str
-    series: Optional[str]
-    publisher: str
-    year: str
-    pages: str
-    language: str
-    size: str
-    extension: str
-    isbn: Optional[str]
-    edition: Optional[str]
-    cover_url: Optional[str]
-    download_url: Optional[str]
-
-
-@dataclass(frozen=True)
-class BkData:
-    id: str
-    authors: tuple[str, ...]  # Tuple for immutability and better performance
-    title: str
-    series: Optional[str]
-    publisher: str
-    year: str
-    pages: str
-    language: str
-    size: str
-    extension: str
-    mirrors: Dict[str, str]
-    isbn: Optional[str] = None
-    edition: Optional[str] = None
+from .models import BookData, BkData
+from .enums import SearchType
 
 
 class SearchRequest:
@@ -108,10 +66,6 @@ class SearchRequest:
         await self.client.aclose()
 
     async def _fetch_mirror_page(self, md5: str) -> Tuple[Optional[str], Optional[str]]:
-        """
-        Fetch and parse the mirror page to get cover and download URLs.
-        Returns (cover_url, download_url)
-        """
         try:
             url = f"{self.BASE_MIRROR}/ads.php?md5={md5}"
             response = await self.client.get(url, timeout=5.0)
@@ -136,7 +90,6 @@ class SearchRequest:
             return None, None
 
     def _extract_md5_from_url(self, url: str) -> Optional[str]:
-        """Extract MD5 hash from mirror URL."""
         md5_match = re.search(r"md5=([a-fA-F0-9]{32})", url)
         return md5_match.group(1) if md5_match else None
 
@@ -144,7 +97,6 @@ class SearchRequest:
         self, mirrors: Dict[str, str]
     ) -> Tuple[Optional[str], Optional[str]]:
         """
-        Resolve mirror links to get direct download URL and cover URL.
         TODO: Add support for library.gift mirror when it's back online
         """
         # For now, we only use libgen.li mirror
@@ -158,7 +110,6 @@ class SearchRequest:
     async def _parse_book_data_with_mirrors(
         self, book_data: BookData, mirrors: Dict[str, str]
     ) -> BookData:
-        """Enhance book data with resolved mirror information."""
         cover_url, download_url = await self._resolve_mirrors(mirrors)
 
         # Create new BookData with resolved URLs
@@ -194,7 +145,6 @@ class SearchRequest:
         )
 
     async def _fetch_with_timeout(self, domain: str) -> Optional[str]:
-        """Fetch from a single domain with timeout."""
         try:
             url = self._build_search_url(domain)
             response = await self.client.get(url)
@@ -204,7 +154,6 @@ class SearchRequest:
             return None
 
     async def get_search_page(self) -> str:
-        """Parallel fetch from all domains."""
         tasks = [self._fetch_with_timeout(domain) for domain in self.DOMAINS]
         responses = await asyncio.gather(*tasks)
 
@@ -216,7 +165,6 @@ class SearchRequest:
         raise ConnectionError("All LibGen mirrors are unreachable")
 
     def _extract_authors(self, cell: html.HtmlElement) -> tuple[str, ...]:
-        """Extract author names using cached XPath."""
         return tuple(
             author.text_content().strip()
             for author in self.XPATH_CACHE["author_links"](cell)
@@ -226,7 +174,6 @@ class SearchRequest:
     def _extract_title_info(
         self, cell: html.HtmlElement
     ) -> tuple[str, Optional[str], Optional[str], Optional[str]]:
-        """Extract title information using cached XPath."""
         series = None
         isbn = None
         edition = None
@@ -252,7 +199,6 @@ class SearchRequest:
         return title, series, isbn, edition
 
     def _extract_mirrors(self, cells: List[html.HtmlElement]) -> Dict[str, str]:
-        """Extract mirror links efficiently."""
         mirrors = {}
         for cell in cells:
             for link in self.XPATH_CACHE["author_links"](cell):
@@ -263,7 +209,6 @@ class SearchRequest:
         return mirrors
 
     def _parse_book_data(self, row: html.HtmlElement) -> Optional[BookData]:
-        """Parse book data with minimal memory allocations."""
         try:
             cells = self.XPATH_CACHE["cells"](row)
             if len(cells) < 10:
@@ -291,7 +236,6 @@ class SearchRequest:
             return None
 
     async def search(self) -> List[BookData]:
-        """Perform optimized search with mirror resolution."""
 
         # Get initial search results
         search_page = await self.get_search_page()

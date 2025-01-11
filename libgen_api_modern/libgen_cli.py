@@ -8,8 +8,6 @@ import signal
 from pathlib import Path
 from typing import Optional, List
 from functools import partial
-import orjson
-import aiofiles
 from rich.console import Console
 from rich.table import Table
 from rich.progress import (
@@ -33,7 +31,7 @@ except ImportError:
 from .search_request import SearchRequest, BookData, SearchType
 
 console = Console()
-executor = ThreadPoolExecutor(max_workers=4)  # For file I/O operations
+executor = ThreadPoolExecutor(max_workers=5)  # For file I/O operations
 
 
 class LibGenCLI:
@@ -291,31 +289,6 @@ class LibGenCLI:
                 await self.interactive_search()
 
 
-def main():
-    """Entry point for the CLI tool."""
-    cli = LibGenCLI()
-    parser = cli.create_parser()
-    args = parser.parse_args()
 
-    try:
-        if sys.platform != "win32":
-            # Use uvloop on non-Windows platforms
-            import uvloop
-
-            uvloop.install()
-
-        asyncio.run(cli.run(args))
-    except KeyboardInterrupt:
-        console.print("\n[yellow]Operation cancelled by user[/yellow]")
-        sys.exit(0)
-    except Exception as e:
-        console.print(f"\n[red]An error occurred: {str(e)}[/red]")
-        sys.exit(1)
-    finally:
-        executor.shutdown(wait=False)
-
-
-if __name__ == "__main__":
-    main()
 
 # EOF

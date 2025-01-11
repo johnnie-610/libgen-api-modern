@@ -29,7 +29,6 @@ class ProxyStats:
 
 
 class RateLimiter:
-    """Advanced rate limiter with per-host and global rate limiting."""
 
     def __init__(
         self,
@@ -46,7 +45,6 @@ class RateLimiter:
         self.host_timestamps: Dict[str, float] = {}
 
     async def acquire(self, host: Optional[str] = None) -> None:
-        """Acquire a rate limit token."""
         async with self.lock:
             # Update tokens based on time passed
             now = time.monotonic()
@@ -72,7 +70,6 @@ class RateLimiter:
 
 
 class ProxyManager:
-    """Advanced proxy manager with health checking and rotation."""
 
     def __init__(self, cache_dir: Path = Path.home() / ".cache" / "libgen-cli"):
         self.cache_dir = cache_dir
@@ -83,7 +80,6 @@ class ProxyManager:
         self._load_proxies()
 
     def _load_proxies(self) -> None:
-        """Load proxies from file with their stats."""
         try:
             if self.proxy_file.exists():
                 with open(self.proxy_file, "rb") as f:
@@ -95,7 +91,6 @@ class ProxyManager:
             logging.warning(f"Failed to load proxies: {e}")
 
     async def _save_proxies(self) -> None:
-        """Save proxy stats to file."""
         try:
             async with aiofiles.open(self.proxy_file, "wb") as f:
                 data = {url: stats.__dict__ for url, stats in self.proxies.items()}
@@ -104,19 +99,16 @@ class ProxyManager:
             logging.warning(f"Failed to save proxies: {e}")
 
     async def add_proxy(self, proxy_url: str) -> None:
-        """Add a new proxy to the pool."""
         if proxy_url not in self.proxies:
             self.proxies[proxy_url] = ProxyStats()
             await self._save_proxies()
 
     async def remove_proxy(self, proxy_url: str) -> None:
-        """Remove a proxy from the pool."""
         if proxy_url in self.proxies:
             del self.proxies[proxy_url]
             await self._save_proxies()
 
     async def get_best_proxy(self) -> Optional[str]:
-        """Get the best performing proxy based on stats."""
         if not self.proxies:
             return None
 
@@ -145,7 +137,6 @@ class ProxyManager:
         response_time: float,
         error: Optional[str] = None,
     ) -> None:
-        """Update proxy statistics."""
         if proxy_url in self.proxies:
             stats = self.proxies[proxy_url]
             if success:
@@ -168,7 +159,6 @@ class ProxyManager:
 
 
 class ProxySession:
-    """Session manager with proxy support and automatic retries."""
 
     def __init__(
         self, proxy_manager: ProxyManager, max_retries: int = 3, timeout: float = 10.0
@@ -195,7 +185,6 @@ class ProxySession:
             await self.client.aclose()
 
     async def request(self, method: str, url: str, **kwargs) -> httpx.Response:
-        """Make a request with automatic proxy rotation and retries."""
         retries = 0
         last_exception = None
 
@@ -235,7 +224,6 @@ class ProxySession:
 
 
 def requires_proxy_session(f):
-    """Decorator to ensure proxy session is available."""
 
     @wraps(f)
     async def wrapper(self, *args, **kwargs):
