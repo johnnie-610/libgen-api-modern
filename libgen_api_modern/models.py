@@ -3,7 +3,7 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class BkData:
     id: str
-    authors: tuple[str, ...]  # Tuple for immutability and better performance
+    authors: tuple[str, ...]
     title: str
     series: str | None
     publisher: str
@@ -18,7 +18,17 @@ class BkData:
 
 
 @dataclass(frozen=True)
+class DownloadLinks:
+    get_link: str | None
+    cloudflare_link: str | None
+    ipfs_link: str | None
+    pinata_link: str | None
+    cover_link: str | None
+
+
+@dataclass(frozen=True)
 class BookData:
+    id: str
     authors: tuple[str, ...]
     title: str
     publisher: str | None
@@ -29,8 +39,7 @@ class BookData:
     extension: str | None
     isbn: str | None
     cover_url: str | None
-    download_url: str | None
-
+    download_links: DownloadLinks | None
 
 
 @dataclass(frozen=True)

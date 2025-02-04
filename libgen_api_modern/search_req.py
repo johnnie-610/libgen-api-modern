@@ -24,11 +24,11 @@ class SearchReq:
         "table": etree.XPath(
             "//table[@id='tablelibgen' and @class='table  table-striped']"
         ),
-        "rows": etree.XPath(".//tbody/tr"),  # Updated to get rows directly from tbody
-        "cells": etree.XPath("./td"),
-        "author_links": etree.XPath(".//a"),
+        "rows": etree.XPath("//tbody/tr"),  # Updated to get rows directly from tbody
+        "cells": etree.XPath("//td"),
+        "author_links": etree.XPath("//a"),
         "title_link": etree.XPath(
-            ".//a[contains(@href, 'edition.php')]"
+            "//a[contains(@href, 'edition.php')]"
         ),  # Updated to match the HTML
         "series_elem": etree.XPath(
             ".//font[@face='Times' and @color='green']/i[not(ancestor::a)]"
@@ -36,7 +36,7 @@ class SearchReq:
         "isbn_elem": etree.XPath(".//font[@face='Times' and @color='green']/i[last()]"),
         "cover_link": etree.XPath(".//a[contains(@href, 'edition.php')]/img/@src"),
         "mirror_links": etree.XPath(
-            ".//nobr/a[contains(@href, '/ads') or contains(@href, 'library.lol') or contains(@href, 'annas-archive.org')]"
+            "//nobr/a[contains(@href, '/ads') or contains(@href, 'library.lol') or contains(@href, 'annas-archive.org')]"
         ),
     }
 

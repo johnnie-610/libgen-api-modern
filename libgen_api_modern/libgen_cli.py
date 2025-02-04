@@ -172,7 +172,7 @@ class LibGenCLI:
 
     async def download_book(self, book: BookData) -> bool:
         """Download the selected book with progress bar."""
-        if not book.download_url:
+        if not book.download_links:
             console.print("[red]No download URL available for this book.[/red]")
             return False
 
@@ -190,7 +190,7 @@ class LibGenCLI:
             ) as progress:
                 task = progress.add_task(f"Downloading {filename}", total=None)
 
-                async with self.client.stream("GET", book.download_url) as response:
+                async with self.client.stream("GET", book.download_links.get_link) as response:
                     response.raise_for_status()
                     total = int(response.headers.get("content-length", 0))
                     progress.update(task, total=total)

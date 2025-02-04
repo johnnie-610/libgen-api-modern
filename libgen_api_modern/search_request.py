@@ -12,7 +12,7 @@ from lxml import html, etree
 from typing import Optional, List, Dict, Tuple
 from functools import lru_cache
 from concurrent.futures import ThreadPoolExecutor
-from .models import BookData, BkData
+from .models import BookData, BkData, DownloadLinks
 from .enums import SearchType
 
 
@@ -39,10 +39,12 @@ class SearchRequest:
 
     # Precompile XPath expressions for mirror page
     MIRROR_XPATH = {
-        "cover": etree.XPath("//table//a[contains(@href, '/covers/')]/img/@src"),
-        "download": etree.XPath(
-            "//td[@bgcolor='#A9F5BC']//a[contains(@href, 'get.php')]/@href"
-        ),
+        "get": "//div[@id='download']/h2[1]/a/@href",
+        "cloudflare": "//ul/li/a[contains(@href,'cloudflare-ipfs.com')]/@href",
+        "ipfs": "//ul/li/a[contains(@href,'gateway.ipfs.io')]/@href",
+        "pinata": "//ul/li/a[contains(@href,'pinata.cloud')]/@href",
+        "cover": "//div/img/@src"
+,
     }
 
     def __init__(
@@ -65,29 +67,36 @@ class SearchRequest:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.client.aclose()
 
-    async def _fetch_mirror_page(self, md5: str) -> Tuple[Optional[str], Optional[str]]:
+    async def _fetch_mirror_page(self, md5: str) -> DownloadLinks | None:
         try:
-            url = f"{self.BASE_MIRROR}/ads.php?md5={md5}"
+            url = f"https://books.ms/main/{md5}"
+
             response = await self.client.get(url, timeout=5.0)
             response.raise_for_status()
 
             tree = html.fromstring(response.text)
 
-            # Extract cover URL
-            cover_path = self.MIRROR_XPATH["cover"](tree)
-            cover_url = f"{self.BASE_MIRROR}{cover_path[0]}" if cover_path else None
+            get_link = tree.xpath(self.MIRROR_XPATH["get"])[0] if tree.xpath(self.MIRROR_XPATH["get"]) else None
+            cloudflare = tree.xpath(self.MIRROR_XPATH["cloudflare"])[0] if tree.xpath(self.MIRROR_XPATH["cloudflare"]) else None
+            ipfs = tree.xpath(self.MIRROR_XPATH["ipfs"])[0] if tree.xpath(self.MIRROR_XPATH["ipfs"]) else None
+            pinata = tree.xpath(self.MIRROR_XPATH["pinata"])[0] if tree.xpath(self.MIRROR_XPATH["pinata"]) else None
 
-            # Extract download URL
-            download_path = self.MIRROR_XPATH["download"](tree)
-            download_url = (
-                f"{self.BASE_MIRROR}/{download_path[0]}" if download_path else None
+            cover = tree.xpath(self.MIRROR_XPATH["cover"])[0] if tree.xpath(self.MIRROR_XPATH["cover"]) else None
+            if cover:
+                # Fix the URL construction by removing the leading slash
+                cover = f"https://books.ms{cover}"
+
+            return DownloadLinks(
+                get_link=get_link,
+                cloudflare_link=cloudflare,
+                ipfs_link=ipfs,
+                pinata_link=pinata,
+                cover_link=cover,
             )
-
-            return cover_url, download_url
 
         except Exception as e:
             print(f"Error fetching mirror page: {e}")
-            return None, None
+            return None
 
     def _extract_md5_from_url(self, url: str) -> Optional[str]:
         md5_match = re.search(r"md5=([a-fA-F0-9]{32})", url)
@@ -101,7 +110,8 @@ class SearchRequest:
         """
         # For now, we only use libgen.li mirror
         for title, url in mirrors.items():
-            if "libgen.li" in url:
+
+            if any(mirror in url for mirror in ["libgen.li", "books.ms"]):
                 md5 = self._extract_md5_from_url(url)
                 if md5:
                     return await self._fetch_mirror_page(md5)
@@ -110,14 +120,13 @@ class SearchRequest:
     async def _parse_book_data_with_mirrors(
         self, book_data: BookData, mirrors: Dict[str, str]
     ) -> BookData:
-        cover_url, download_url = await self._resolve_mirrors(mirrors)
+        download_links: DownloadLinks | None = await self._resolve_mirrors(mirrors)
 
         # Create new BookData with resolved URLs
         return BookData(
             id=book_data.id,
             authors=book_data.authors,
             title=book_data.title,
-            series=book_data.series,
             publisher=book_data.publisher,
             year=book_data.year,
             pages=book_data.pages,
@@ -125,9 +134,8 @@ class SearchRequest:
             size=book_data.size,
             extension=book_data.extension,
             isbn=book_data.isbn,
-            edition=book_data.edition,
-            cover_url=cover_url,
-            download_url=download_url,
+            cover_url=download_links.cover_link if download_links else None,
+            download_links=download_links,
         )
 
     @lru_cache(maxsize=128)
@@ -259,8 +267,5 @@ class SearchRequest:
             tasks.append(task)
 
         final_results = await asyncio.gather(*tasks)
-
-
-
 
         return final_results

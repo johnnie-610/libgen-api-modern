@@ -1,11 +1,31 @@
 [tool.poetry]
 name = "libgen-api-modern"
-version = "0.1.17"
-description = "Search Library Genesis. This library enables you to search Library Genesis programmatically for Non-fiction/Sci-tech, Fiction, and Sci-mag - Scientific articles."
+version = "0.1.18"
+description = "Search Library Genesis. This library enables you to search Library Genesis programmatically."
 authors = ["Johnnie <99084912+johnnie-610@users.noreply.github.com>"]
 license = "MIT"
 readme = "README.md"
+keywords = ["libgen", "library genesis", "library", "genesis", "search", "download", "books", "articles", "non-fiction", "fiction", "sci-tech", "sci-mag", "scientific", "magazines"]
+classifiers = [
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Internet",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Utilities",]
 packages = [{include = "libgen_api_modern"}]
+
+[tool.poetry.urls]
+"Repository" = "https://github.com/Johnnie610/libgen-api-modern"
+"Bug Tracker" = "https://github.com/Johnnie610/libgen-api-modern/issues"
+
 
 [tool.poetry.dependencies]
 python = "^3.9"

@@ -6,104 +6,40 @@ Search Library Genesis programmatically using an enhanced Python library. This f
 
 - [libgen-api-modern](#libgen-api-modern)
   - [Contents](#contents)
+  - [What's New](#whats-new)
   - [Getting Started](#getting-started)
-  - [NOTICE](#notice)
-    - [Non-fiction/Sci-tech](#non-fictionsci-tech)
-    - [Fiction](#fiction)
-    - [Sci-mag - Scientific articles](#sci-mag---scientific-articles)
-  - [Basic Searching](#basic-searching)
-    - [Title](#title)
-    - [Author](#author)
   - [Filtered Searching](#filtered-searching)
     - [Filtered Title Searching](#filtered-title-searching)
     - [Non-exact Filtered Searching](#non-exact-filtered-searching)
   - [Results Layout](#results-layout)
     - [Non-fiction/sci-tech result layout](#non-fictionsci-tech-result-layout)
-    - [Fiction result layout](#fiction-result-layout)
-    - [Sci-mag results layout](#sci-mag-results-layout)
   - [Contributors](#contributors)
+
+## What's New
+
+- Added direct download links for books
+- Added book cover links
+- Added 100 results by default
+- Added support for filtering
+Please Note that this README may not show exact results as from using the library. THIS IS A WORK IN PROGRESS, IT'LL BE UPDATED AS THE LIBRARY DEVELOPMENT GOES ON.
 
 ## Getting Started
 
 Install the package -
 
-using pipx
+```shell
+
+pip install libgen-api-modern
 
 ```
-pipx install libgen-api-modern
-```
-
-using poetry
-
-```
-poetry add libgen-api-modern
-```
-
-## NOTICE
-
-With libgen-api-modern library, you can search for:
-
-- non-fiction/sci-tech
-- fiction
-- scientific articles
 
 Perform a basic search -
 
-### Non-fiction/Sci-tech
-
 ```python
-# search()
 
-from libgen_api_modern import LibgenSearch
-results = await LibgenSearch.search("The Alchemist")
-print(results)
+await LibgenSearch.search("Pride and Prejudice")
+
 ```
-
-### Fiction
-
-```python
-# search_fiction()
-
-from libgen_api_modern import LibgenSearch
-results = await LibgenSearch.search_fiction("How to kill men and get away with it")
-print(results)
-```
-
-### Sci-mag - Scientific articles
-
-```python
-# search_scientific_articles()
-
-from libgen_api_modern import LibgenSearch
-results = await LibgenSearch.search_scientific_articles("Solar")
-print(results)
-```
-
-## Basic Searching
-
-Search by title or author:
-
-### Title
-
-```python
-# search title
-
-from libgen_api_modern import LibgenSearch
-results = await LibgenSearch.search("Pride and Prejudice", search_type = "title")
-print(results)
-```
-
-### Author
-
-```python
-# search author
-
-from libgen_api_modern import LibgenSearch
-results = await LibgenSearch.search("Jane Austen", search_type = "author")
-print(results)
-```
-
-> You can provide title, author, ISBN, publisher, year, language, or series as arguments to search_type
 
 ## Filtered Searching
 
@@ -116,8 +52,6 @@ print(results)
 ```python
 # search_filtered()
 
-from libgen_api_modern import LibgenSearch
-
 title_filters = {"Year": "2007", "Extension": "epub"}
 titles = await LibgenSearch.search_filtered("Pride and Prejudice", title_filters, exact_match=True)
 print(titles)
@@ -126,10 +60,8 @@ print(titles)
 ### Non-exact Filtered Searching
 
 ```python
-# search filtered 
+# search filtered
 # exact_match = False
-
-from libgen_api_modern import LibgenSearch
 
 partial_filters = {"Year": "2000"}
 titles = await LibgenSearch.search_filtered("Agatha Christie", partial_filters, exact_match=False)
@@ -141,71 +73,36 @@ print(titles)
 
 ### Non-fiction/sci-tech result layout
 
-Results are returned as a list of dictionaries:
+Results are returned as a python object.
 
-```json
-[
-  {
-    "Title": "The war of art", 
-    "Author(s)": "Mits Free", 
-    "Series": "example series", 
-    "Periodical": "", 
-    "Publisher": "Libre publishers", 
-    "City": "New York, NY", 
-    "Year": "2002", 
-    "Edition": "1st ed",
-    "Language": "English",
-    "Pages": "165[159]",
-    "ISBN": "123456789",
-    "ID": "1487009",
-    "Size": "430 Kb (440781)",
-    "Extension": "pdf",
-    "Cover": "https://covers.xyz.jpg", 
-    "Direct_Download_Link": "https://download.xyz/book.pdf"
-  }
-]
+```python
+
+BookData:
+    id: str
+    authors: tuple[str, ...]
+    title: str
+    publisher: str | None
+    year: str | None
+    pages: str | None
+    language: str | None
+    size: str | None
+    extension: str | None
+    isbn: str | None
+    cover_url: str | None
+    download_links: DownloadLinks | None
 
 ```
+ALSO NOTE: `download_links` is a `DownloadLinks` object.
 
-### Fiction result layout
+```python
 
-```json
+DownloadLinks:
+    get_link: str | None
+    cloudflare_link: str | None
+    ipfs_link: str | None
+    pinata_link: str | None
+    cover_link: str | None
 
-[
-  {
-    "Title": "How to Get Away With It",
-    "Language": "English",
-    "Year": "1873",
-    "Publisher": "Pub",
-    "Format": "EPUB",
-    "ID": "4263532",
-    "Authors": "John Doe",
-    "Cover": "https://cover.xyz.book.jpg",
-    "Direct_Download_Link": "https://download.xyz.book.epub"
-  }
-]
-```
-
-### Sci-mag results layout
-
-```json
-
-[
-  {
-    "Title": "Superhuman-like dominance", 
-    "Authors": "Goated Johnnie", 
-    "DOI": "15.142/cze.12345", 
-    "Journal": "The Journal of Complete dominance", 
-    "Publisher": "Johnnie prods", 
-    "Year": "2002", 
-    "Volume": "445", 
-    "Issue": "4", 
-    "Pages": "374—387", 
-    "ID": "1142493", 
-    "Direct_Download_Link_1": "", 
-    "Direct_Download_Link_2": "https://example.zxy/article.pdf"
-  }
-]
 ```
 
 ## Contributors
