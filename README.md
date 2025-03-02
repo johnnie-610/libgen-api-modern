@@ -186,4 +186,4 @@ Contributions, bug reports, and feature requests are welcome! Feel free to open 
 
 This project is licensed under the [MIT License](https://opensource.org/licenses/MIT).
 
-*Enjoy using the Libgen Async CLI to explore, search, and download your favourite books!*
+*Enjoy using the Libgen to explore, search, and download your favourite books!*
