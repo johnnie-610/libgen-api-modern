@@ -1,5 +1,5 @@
 [project]
-name = "libgen-api-mordern"
+name = "libgen-api-modern"
 version = "0.2.1"
 description = "Search Library Genesis. This library enables you to search Library Genesis programmatically."
 authors = [
