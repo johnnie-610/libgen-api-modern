@@ -9,6 +9,7 @@ license = { text = "MIT" }
 readme = "README.md"
 packages = [
     { include = "libgen" },
+    { include = "libgen_api_modern" }
 ]
 requires-python = ">=3.9"
 keywords = ["libgen", "library genesis", "library", "genesis", "search", "download", "books", "articles", "non-fiction", "fiction", "sci-tech", "sci-mag", "scientific", "magazines"]
