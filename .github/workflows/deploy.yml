@@ -22,7 +22,8 @@ jobs:
         run: |
           pip install poetry==2.1.3
           poetry lock
-          poetry install
+          poetry install --no-root
+          
 
       - name: Build and publish to PyPI
         env:
