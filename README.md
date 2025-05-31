@@ -71,7 +71,7 @@ top-level libgen package. These functions return a list of `BookData` objects.
 
 ```python
 import asyncio
-from libgen import search_async, LibgenError, BookData
+from libgen_api_modern import search_async, LibgenError, BookData
 
 
 async def main():
@@ -123,7 +123,7 @@ Direct Download: https://...b3488&key=SOMEKEY
 You can also use filtered search (currently relies on the "old" API):
 
 ```python
-from libgen import search_filtered_async
+from libgen_api_modern import search_filtered_async
 
 
 async def filtered_search_example():
