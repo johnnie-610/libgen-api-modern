@@ -3,11 +3,12 @@
 # This software is released under the MIT License.
 # https://opensource.org/licenses/MIT
 #
-# libgen/main.py
+# libgen/enums.py
 #
 # This file is part of the libgen-api-modern library
 
-from libgen.cli import main
+from enum import Enum
 
-if __name__ == "__main__":
-    main()
+class SearchType(Enum):
+    DEFAULT = "def"
+    FICTION = "fiction"

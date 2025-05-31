@@ -1,189 +1,211 @@
-# Libgen
+# Libgen-API-Modern
 
-Libgen is a lightweight, asynchronous Python library and command‑line tool designed to search for, parse, and download books from Library Genesis (Libgen) and its alternative domains. It is built for maximum efficiency and minimal dependencies while providing a modern, user‑friendly interface using the [Rich](https://github.com/Textualize/rich) library for enhanced terminal output.
+Libgen-API-Modern is a lightweight, asynchronous Python library and command-line tool designed to search for, parse, and
+download books from Library Genesis (Libgen) and its alternative domains. It is built for efficiency and minimal
+dependencies while providing a modern, user-friendly interface using the [Rich](https://github.com/Textualize/rich)
+library for enhanced terminal output.
+
+The library intelligently attempts to use an older, more structured Libgen interface first, and falls back to newer,
+more common Libgen interfaces if needed, ensuring higher chances of success.
 
 ---
 
 ## Features
 
 - **Asynchronous Operations:**
-  Uses [aiohttp](https://github.com/aio-libs/aiohttp) for non‑blocking HTTP requests to search Libgen websites and download files.
+  Uses [aiohttp](https://github.com/aio-libs/aiohttp) for non-blocking HTTP requests.
+- **Fallback Mechanism:** Prioritizes more structured Libgen sources, falling back to common mirrors.
 - **Multiple Domain & Proxy Support:**
-  Automatically rotates through multiple Libgen domains and supports proxy integration.
+  Automatically rotates through multiple Libgen domains (for the "new" client part) and supports proxy integration.
 - **Advanced HTML Parsing & Link Resolution:**
-
-  - Custom HTML parser extracts book details, cover images, and mirror links.
+  Custom HTML parsers extract book details, cover images, and attempts to resolve direct download links.
+- **Consistent Data Model:** Returns search results as `BookData` objects for predictable data handling.
 - **Rich Terminal Output:**
-  Displays search results in a well‑formatted, colored table using [Rich](https://github.com/Textualize/rich).
-- **Versatile CLI with Built‑in Help & Manual:**
-
-  - **Search Mode:** Search for books by query.
-  - **Download Mode:** Download a file from a given mirror URL.
-  - **Interactive Mode:** A REPL loop to repeatedly search and download books.
-  - Custom help commands (`libgen help [command]`) and a full manual (`libgen manual` or `man libgen`) are available.
-  - Running `libgen` with no arguments defaults to interactive mode.
-- **Memory Safety:**
-  Safely creates directories, checks for existing files, and prompts before overwriting files during downloads.
+  Displays search results in a well-formatted, colored table using [Rich](https://github.com/Textualize/rich) in the
+  CLI.
+- **Versatile CLI with Built-in Help & Manual:**
+    - **Search Mode:** Search for books by query.
+    - **Download Mode:** Download a file from a given mirror URL, with a progress bar.
+    - **Interactive Mode:** A REPL loop to repeatedly search and download books.
+    - Custom help commands (`libgen help [command]`) and a full manual (`libgen manual` or `man libgen`).
+    - Running `libgen` with no arguments defaults to interactive mode.
 
 ---
 
 ## Installation
 
 ```bash
-
 pip install libgen-api-modern
-
 ```
-
----
 
 ## Usage
 
-- The project can be used both as a library (for programmatic usage) and as a command‑line tool.
+The project can be used both as a library for programmatic integration and as a command-line tool.
 
-### As a Library:
+### As a Library
 
-- You can import the library into your Python programs. The main function is search from libgen.client, which returns a list of dictionaries. Each result dictionary has the following keys:
+Import the library into your Python programs. The primary functions are `search_async` and `search_sync` from the
+top-level libgen package. These functions return a list of `BookData` objects.
 
-  - **title**: The title of the book.
-  - **authors**: The authors of the book.
-  - **publisher**: The publisher of the book.
-  - **year**: The publication year of the book.
-  - **language**: The language of the book.
-  - **pages**: The number of pages in the book.
-  - **size**: The size of the book in bytes.
-  - **extension**: The file extension of the book.
-  - **cover**: The URL of the book's cover image.
-  - **mirror**: The URL of the book's mirror link.
+#### BookData Object Attributes
 
-#### Example:
+- `id: str` - The Libgen ID of the book.
+- `authors: tuple[str, ...]` - A tuple of author names.
+- `title: str` - The title of the book.
+- `publisher: str | None` - The publisher.
+- `year: str | None` - Publication year.
+- `pages: str | None` - Number of pages.
+- `language: str | None` - Language of the book.
+- `size: str | None` - File size (e.g., "10 MB").
+- `extension: str | None` - File extension (e.g., "pdf").
+- `isbn: str | None` - ISBN, if available.
+- `cover_url: str | None` - URL of the book's cover image.
+- `download_links: DownloadLinks | None` - An object containing various download links:
+    - `get_link: str | None` - A direct GET download link, often the most reliable.
+    - `cloudflare_link: str | None`
+    - `ipfs_link: str | None`
+    - `pinata_link: str | None`
+    - `cover_link: str | None` (Note: `BookData.cover_url` is usually preferred for the main cover)
+
+#### Example
 
 ```python
-
 import asyncio
-from libgen.client import search, LibgenError
+from libgen import search_async, LibgenError, BookData
+
 
 async def main():
     try:
         # Perform a search query for "the art of war"
-        results = await search("the art of war")
-        for result in results:
-            print(f"Title: {result['title']}")
-            print(f"Authors: {result['authors']}")
-            print(f"Cover: {result['cover']}")
-            print(f"Download: {result['mirror']}")
+        results: list[BookData] = await search_async("the art of war")
+        if not results:
+            print("No results found.")
+            return
+
+        for book in results:
+            print(f"Title: {book.title}")
+            print(f"Authors: {', '.join(book.authors) if book.authors else 'N/A'}")
+            print(f"Year: {book.year or 'N/A'}")
+            print(f"Extension: {book.extension or 'N/A'}")
+            if book.cover_url:
+                print(f"Cover: {book.cover_url}")
+
+            direct_download_link = None
+            if book.download_links and book.download_links.get_link:
+                direct_download_link = book.download_links.get_link
+
+            if direct_download_link:
+                print(f"Direct Download: {direct_download_link}")
+            else:
+                print("No direct download link found through primary resolution.")
             print("-" * 40)
+
     except LibgenError as e:
         print(f"Libgen search error: {e}")
 
-asyncio.run(main())
 
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
-#### Example Output:
+#### Example Output (Conceptual for one book)
+
+```
+Title: The Art of War
+Authors: Sun Tzu
+Year: 5th century BC
+Extension: pdf
+Cover: https://..pic.jpg
+Direct Download: https://...b3488&key=SOMEKEY
+----------------------------------------
+```
+
+You can also use filtered search (currently relies on the "old" API):
 
 ```python
+from libgen import search_filtered_async
 
-{
-  "cover": "https://libgen.li/comicscovers/1173000/07fa8b415fc7e4b2aa4c9ef66f0b3488_small.jpg",
-  "title": "The Art of War",
-  "authors": "Sun Tzu",
-  "publisher": "Unknown",
-  "year": "5th century BC",
-  "language": "English",
-  "pages": "200",
-  "size": "58 MB",
-  "extension": "pdf",
-  "mirror": "https://libgen.li/get.php?md5=07fa8b415fc7e4b2aa4c9ef66f0b3488"
-}
 
+async def filtered_search_example():
+    filters = {"year": "2020", "extension": "pdf"}
+    results = await search_filtered_async("python programming", filters=filters, exact_match=False)
+    # ... process results ...
 ```
 
-### As a Command-Line Tool:
+### As a Command-Line Tool
 
 The CLI provides multiple usage modes:
 
-#### Interactive Mode:
+#### Interactive Mode
 
-- Running libgen without any arguments starts interactive mode.
+Running `libgen` without any arguments starts interactive mode.
 
 ```bash
-
 libgen
-
 ```
 
 In interactive mode:
 
-- You can enter search queries repeatedly.
-- Results are displayed in a rich‑formatted table.
-- You can choose a mirror URL to download the file.
-- Type exit or quit to leave the mode.
+- Enter search queries repeatedly.
+- Results are displayed in a rich-formatted table.
+- Choose a book by number to download.
+- Type `exit` or `quit` to leave.
 
-#### Search Mode:
+#### Search Mode
 
-Perform a one‑off search from the CLI:
+Perform a one-off search from the CLI. Results are displayed, and you'll be prompted if you want to download one.
 
 ```bash
-
 libgen search "the art of war" --proxy http://yourproxy:port
-
 ```
 
-This displays the search results. You can then note a mirror URL and use the download command.
+#### Download Mode
 
-#### Download Mode:
-
-Download a file from a mirror URL:
+Download a file directly from a known Libgen mirror URL:
 
 ```bash
-
-libgen download https://libgen.li/get.php?md5=07fa8b415fc7e4b2aa4c9ef66f0b3488 --output mybook.pdf
-
+libgen download "MIRROR_URL" --output "mybook.pdf"
 ```
 
-This downloads the file from the provided mirror URL. If the output file exists, you will be prompted before overwriting.
+Example:
 
-#### Help and Manual:
+```bash
+libgen download "https://...y=SOMEKEY" --output "art_of_war.pdf"
+```
 
-##### Short Help:
+This downloads the file with a progress bar. If the output file exists, you will be prompted.
+
+#### Help and Manual
 
 Get a brief overview of available commands:
 
 ```bash
-
 libgen help
-
 ```
 
 For detailed help on a specific command:
 
 ```bash
-
 libgen help search
 libgen help download
 libgen help interactive
-
 ```
-
-##### Full Manual:
 
 To view the complete manual with detailed instructions and examples:
 
 ```bash
-
 libgen manual
-# or
-man libgen
-
+# or (if symlinked appropriately)
+# man libgen
 ```
 
 ## Contributing
 
-Contributions, bug reports, and feature requests are welcome! Feel free to open an issue or submit a pull request on [GitHub](https://github.com/johnnie-610/libgen-api-modern). We'll be happy to review and merge your contributions.
+Contributions, bug reports, and feature requests are welcome! Feel free to open an issue or submit a pull request on
+[GitHub](https://github.com/Johnnie610/libgen-api-modern).
 
 ## License
 
-This project is licensed under the [MIT License](https://opensource.org/licenses/MIT).
+This project is licensed under the [MIT License](https://mit-license.org/).
 
-*Enjoy using the Libgen to explore, search, and download your favourite books!*
+Enjoy using Libgen-API-Modern to explore, search, and download your favourite books!
