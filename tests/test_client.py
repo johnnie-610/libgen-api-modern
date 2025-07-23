@@ -1,66 +1,58 @@
-#!/usr/bin/env python3
-"""
-Test script for the LibgenClient class.
-This script tests both synchronous and asynchronous functionality.
-"""
+import pytest
+from libgen.client import search_async, search_sync
+from libgen.errors import LibgenSearchError
+from libgen.models import BookData
 
-import asyncio
-import sys
-from libgen.new.client import LibgenClient, search, search_sync
+@pytest.mark.asyncio
+async def test_search_async_success():
+    """Tests a successful async search."""
+    results = await search_async("python data science")
+    assert isinstance(results, list)
+    assert len(results) > 0
+    book = results[0]
+    assert isinstance(book, BookData)
+    assert book.title is not None
+    assert book.id is not None
+    # Check if at least some download links were resolved
+    assert any(b.download_links and b.download_links.get_link for b in results)
 
-async def test_async():
-    """Test asynchronous search functionality"""
-    print("Testing asynchronous search...")
-    
-    # Test using the client class
-    async with LibgenClient() as client:
-        results = await client.search_async("python programming")
-        print(f"Found {len(results)} results using client.search_async")
-        if results:
-            print(f"First result: {results[0].title} by {', '.join(results[0].authors)}")
-    
-    # Test using the standalone function
-    results = await search("python programming")
-    print(f"Found {len(results)} results using search function")
-    if results:
-        print(f"First result: {results[0]['title']} by {results[0]['authors']}")
-    
-    return True
+def test_search_sync_success():
+    """Tests a successful sync search."""
+    results = search_sync(" Principia Mathematica")
+    assert isinstance(results, list)
+    assert len(results) > 0
+    book = results[0]
+    assert isinstance(book, BookData)
+    assert "Principia" in book.title
+    assert any(b.download_links and b.download_links.get_link for b in results)
 
-def test_sync():
-    """Test synchronous search functionality"""
-    print("\nTesting synchronous search...")
-    
-    # Test using the client class
-    with LibgenClient() as client:
-        results = client.search_sync("python programming")
-        print(f"Found {len(results)} results using client.search_sync")
-        if results:
-            print(f"First result: {results[0].title} by {', '.join(results[0].authors)}")
-    
-    # Test using the standalone function
-    results = search_sync("python programming")
-    print(f"Found {len(results)} results using search_sync function")
-    if results:
-        print(f"First result: {results[0]['title']} by {results[0]['authors']}")
-    
-    return True
+@pytest.mark.asyncio
+async def test_search_async_no_results():
+    """Tests an async search that returns no results."""
+    results = await search_async("nonexistentbookxyz123abc")
+    assert isinstance(results, list)
+    assert len(results) == 0
 
-async def main():
-    """Run all tests"""
-    try:
-        async_success = await test_async()
-        sync_success = test_sync()
-        
-        if async_success and sync_success:
-            print("\nAll tests passed!")
-            return 0
-        else:
-            print("\nSome tests failed!")
-            return 1
-    except Exception as e:
-        print(f"Error during testing: {e}")
-        return 1
+def test_search_sync_no_results():
+    """Tests a sync search that returns no results."""
+    results = search_sync("nonexistentbookxyz123abc")
+    assert isinstance(results, list)
+    assert len(results) == 0
 
-if __name__ == "__main__":
-    sys.exit(asyncio.run(main()))
+def test_bookdata_model():
+    """Tests the integrity of the BookData model."""
+    book = BookData(
+        id="12345",
+        title="Test Book",
+        authors=("Author One",),
+        year="2024",
+        extension="pdf",
+        size="10 MB",
+        pages="300",
+        publisher="Test Publisher",
+        language="English",
+        mirror_url="http://example.com"
+    )
+    assert book.title == "Test Book"
+    assert book.language == "English"
+    assert book.download_links is None

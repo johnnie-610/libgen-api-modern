@@ -14,16 +14,19 @@ import logging
 import re
 
 from typing import Any
-from .parser import LibgenHTMLParser
-from ..models import BookData, DownloadLinks
-from ..types import (
+from parser import LibgenHTMLParser
+from models import BookData, DownloadLinks
+
+from errors import (
+    LibgenNetworkError,
+    LibgenSearchError,
+    LibgenParseError,
+)
+
+from libgen_types import (
     URL,
     ProxyList,
     RawBookResult,
-)
-from ..errors import (
-    LibgenNetworkError,
-    LibgenSearchError,
 )
 
 # List of Libgen alternative domains
@@ -43,20 +46,13 @@ class LibgenClient:
     """
 
     def __init__(self, timeout: int = 10, max_connections: int = 10):
-        """
-        Initialize the LibgenClient.
 
-        Args:
-            timeout: Request timeout in seconds
-            max_connections: Maximum number of concurrent connections
-        """
         self.timeout = timeout
         self.max_connections = max_connections
         self._async_session = None
         self._sync_session = None
 
     async def __aenter__(self):
-        """Async context manager entry"""
         if self._async_session is None:
             self._async_session = aiohttp.ClientSession(
                 timeout=aiohttp.ClientTimeout(total=self.timeout),
@@ -65,20 +61,17 @@ class LibgenClient:
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Async context manager exit"""
         if self._async_session:
             await self._async_session.close()
             self._async_session = None
 
     def __enter__(self):
-        """Sync context manager entry"""
         if self._sync_session is None:
             self._sync_session = requests.Session()
             self._sync_session.timeout = self.timeout
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """Sync context manager exit"""
         if self._sync_session:
             self._sync_session.close()
             self._sync_session = None
@@ -86,20 +79,7 @@ class LibgenClient:
     async def fetch_page_async(
         self, url: URL, params: dict[str, Any] = None, proxy: str = None
     ) -> str:
-        """
-        Asynchronously fetch a page from a URL.
 
-        Args:
-            url: The URL to fetch
-            params: Optional query parameters
-            proxy: Optional proxy URL
-
-        Returns:
-            The page content as a string
-
-        Raises:
-            LibgenNetworkError: If the request fails
-        """
         if self._async_session is None:
             raise RuntimeError(
                 "Client not initialized. Use async with LibgenClient() as client: ..."
@@ -115,20 +95,7 @@ class LibgenClient:
     def fetch_page_sync(
         self, url: URL, params: dict[str, Any] = None, proxy: str = None
     ) -> str:
-        """
-        Synchronously fetch a page from a URL.
 
-        Args:
-            url: The URL to fetch
-            params: Optional query parameters
-            proxy: Optional proxy URL
-
-        Returns:
-            The page content as a string
-
-        Raises:
-            LibgenNetworkError: If the request fails
-        """
         if self._sync_session is None:
             raise RuntimeError(
                 "Client not initialized. Use with LibgenClient() as client: ..."
@@ -148,16 +115,7 @@ class LibgenClient:
     async def resolve_mirror_link_async(
         self, mirror_partial: str, base_url: URL
     ) -> URL:
-        """
-        Asynchronously resolve a mirror link to get the actual download link.
 
-        Args:
-            mirror_partial: The partial mirror link
-            base_url: The base URL of the Libgen site
-
-        Returns:
-            The resolved download link
-        """
         # Ensure the mirror_partial starts with a slash
         if not mirror_partial.startswith("/"):
             mirror_partial = "/" + mirror_partial
@@ -181,16 +139,7 @@ class LibgenClient:
             return url
 
     def resolve_mirror_link_sync(self, mirror_partial: str, base_url: URL) -> URL:
-        """
-        Synchronously resolve a mirror link to get the actual download link.
 
-        Args:
-            mirror_partial: The partial mirror link
-            base_url: The base URL of the Libgen site
-
-        Returns:
-            The resolved download link
-        """
         # Ensure the mirror_partial starts with a slash
         if not mirror_partial.startswith("/"):
             mirror_partial = "/" + mirror_partial
@@ -214,18 +163,7 @@ class LibgenClient:
             return url
 
     def _parse_results(self, html: str) -> list[RawBookResult]:
-        """
-        Parse HTML search results into a list of dictionaries.
 
-        Args:
-            html: The HTML content to parse
-
-        Returns:
-            A list of dictionaries containing book information
-
-        Raises:
-            LibgenParseError: If parsing fails
-        """
         parser = LibgenHTMLParser()
         parser.feed(html)
         return parser.get_results()
@@ -233,16 +171,7 @@ class LibgenClient:
     def _convert_to_book_data(
         self, result: RawBookResult, download_link: URL | None = None
     ) -> BookData:
-        """
-        Convert a raw result dictionary to a BookData object.
 
-        Args:
-            result: The raw result dictionary
-            download_link: Optional download link
-
-        Returns:
-            A BookData object
-        """
         # Extract authors as a tuple
         authors_str = result.get("authors", "")
         authors = tuple(
@@ -278,7 +207,13 @@ class LibgenClient:
     async def search_async(
         self, query: str, proxies: ProxyList = None
     ) -> list[BookData]:
-        params = {}  # ...
+        params = {
+            "req": query,
+            "res": "100",  # results per page
+            "covers": "on",
+            "filesuns": "all",
+        }
+
 
         for base_url in LIBGEN_URLS:
             search_url = f"{base_url}/index.php"
@@ -337,20 +272,7 @@ class LibgenClient:
         )
 
     def search_sync(self, query: str, proxies: ProxyList = None) -> list[BookData]:
-        """
-        Synchronously search Libgen for a given query.
 
-        Args:
-            query: The search query string
-            proxies: Optional list of proxy URLs
-
-        Returns:
-            A list of BookData objects with complete links
-
-        Raises:
-            LibgenSearchError: If the search fails
-            LibgenNetworkError: If there's a network error
-        """
         params = {
             "req": query,
             "res": "100",  # results per page
@@ -427,21 +349,7 @@ async def fetch_page(
     params: dict[str, Any] = None,
     proxy: str = None,
 ) -> str:
-    """
-    Asynchronously fetch a page from a URL.
 
-    Args:
-        session: The aiohttp ClientSession to use
-        url: The URL to fetch
-        params: Optional query parameters
-        proxy: Optional proxy URL
-
-    Returns:
-        The page content as a string
-
-    Raises:
-        LibgenNetworkError: If the request fails
-    """
     async with session.get(url, params=params, proxy=proxy, timeout=10) as resp:
         if resp.status != 200:
             raise LibgenNetworkError(f"HTTP error", status_code=resp.status, url=url)
@@ -451,19 +359,7 @@ async def fetch_page(
 async def resolve_mirror_link(
     mirror_partial: str, base_url: URL, session: aiohttp.ClientSession
 ) -> URL:
-    """
-    Given a mirror link extracted from the table (which may be incomplete),
-    check if it already contains 'get.php?md5='. If not, fetch that page and extract the
-    actual GET link.
 
-    Args:
-        mirror_partial: The partial mirror link
-        base_url: The base URL of the Libgen site
-        session: The aiohttp ClientSession to use
-
-    Returns:
-        The resolved download link
-    """
     # Ensure the mirror_partial starts with a slash
     if not mirror_partial.startswith("/"):
         mirror_partial = "/" + mirror_partial
@@ -487,24 +383,16 @@ async def resolve_mirror_link(
 
 
 def parse_results(html: str) -> list[RawBookResult]:
-    """
-    Parse HTML search results into a list of dictionaries.
 
-    Args:
-        html: The HTML content to parse
-
-    Returns:
-        A list of dictionaries containing book information
-
-    Raises:
-        LibgenParseError: If parsing fails
-    """
-    parser = LibgenHTMLParser()
-    parser.feed(html)
-    return parser.get_results()
+    try:
+        parser = LibgenHTMLParser()
+        parser.feed(html)
+        return parser.get_results()
+    except Exception as e:
+        raise LibgenParseError(f"Failed to parse HTML: {e}")
 
 
-async def search(query: str, proxies: ProxyList = None) -> list[BookData]:
+async def search_async(query: str, proxies: ProxyList = None) -> list[BookData]:
     """
     Search Libgen for a given query. After parsing the raw HTML into results,
     we post-process each result to update cover and mirror links.
@@ -537,7 +425,8 @@ def search_sync(query: str, proxies: ProxyList = None) -> list[BookData]:
 
     Raises:
         LibgenSearchError: If the search fails,
-        LibgenNetworkError: If there's a network error
+        LibgenNetworkError: If there's a network error,
+        LibgenParseError: If parsing fails
     """
     with LibgenClient() as client:
         return client.search_sync(query, proxies)

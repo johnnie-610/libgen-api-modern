@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "libgen-api-modern"
-version = "0.2.1"
+version = "1.0.0"
 description = "Search Library Genesis. This library enables you to search Library Genesis programmatically."
 authors = ["Johnnie <johnnie610@duck.com>"]
 license = "MIT"
@@ -15,14 +15,15 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Internet",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Utilities", ]
+
 packages = [{ include = "libgen" }]
 
 [tool.poetry.urls]
 "Repository" = "https://github.com/Johnnie610/libgen-api-modern"
-"Bug Tracker" = "https://github.com/Johnnie610/libgen-api-modern/issues"
 
 
 [tool.poetry.dependencies]
@@ -34,10 +35,13 @@ requests = "^2.32.3"
 
 
 [tool.poetry.scripts]
-libgen = "libgen_api_modern:main"
+libgen = "libgen.cli:main"
 
 [tool.poetry.group.dev.dependencies]
 ipykernel = "^6.29.5"
+pytest = "^8.4.1"
+pytest-asyncio = "^1.1.0"
+
 
 [build-system]
 requires = ["poetry-core"]
